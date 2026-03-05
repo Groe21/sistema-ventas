@@ -12,6 +12,10 @@ COPY . .
 
 RUN composer install --no-dev --optimize-autoloader --no-scripts
 
-RUN chmod -R 775 storage bootstrap/cache
+RUN mkdir -p storage/framework/{cache/data,sessions,views} storage/logs bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache \
+    && chmod +x start.sh
 
-CMD php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
+EXPOSE 8080
+
+CMD ["bash", "start.sh"]
