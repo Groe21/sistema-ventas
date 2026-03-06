@@ -39,10 +39,11 @@ Route::middleware(['auth', 'super-admin'])->prefix('super-admin')->name('super-a
     Route::get('/businesses', [SuperAdminController::class, 'businesses'])->name('businesses.index');
     Route::post('/businesses', [SuperAdminController::class, 'storeBusiness'])->name('businesses.store');
     
-    // Users Management (placeholder)
-    Route::get('/users', function () {
-        return view('super-admin.users.index');
-    })->name('users.index');
+    // Users Management
+    Route::get('/users', [SuperAdminController::class, 'users'])->name('users.index');
+    Route::post('/users', [SuperAdminController::class, 'storeUser'])->name('users.store');
+    Route::put('/users/{user}', [SuperAdminController::class, 'updateUser'])->name('users.update');
+    Route::delete('/users/{user}', [SuperAdminController::class, 'destroyUser'])->name('users.destroy');
     
     // Subscriptions (placeholder)
     Route::get('/subscriptions', function () {
