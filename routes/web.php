@@ -8,6 +8,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\POSController;
 use App\Http\Controllers\CashController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\SuperAdmin\SuperAdminController;
 
 /*
@@ -91,10 +92,11 @@ Route::middleware(['auth', 'business'])->group(function () {
     
     // Admin Only Routes
     Route::middleware('admin')->group(function () {
-        // Users Management (placeholder)
-        Route::get('/users', function () {
-            return view('admin.users.index');
-        })->name('users.index');
+        // Users Management
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
         
         // Reports (placeholder)
         Route::get('/reports', function () {
