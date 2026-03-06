@@ -11,10 +11,10 @@ php artisan migrate --force || true
 echo "==> Seeding database..."
 php artisan db:seed --force || true
 
-echo "==> Caching config..."
-php artisan config:clear
-php artisan route:clear
-php artisan view:clear
+echo "==> Clearing caches..."
+php artisan config:clear || true
+php artisan route:clear || true
+php artisan view:clear || true
 
 echo "==> Starting server on port ${PORT:-8080}..."
 exec php artisan serve --host=0.0.0.0 --port="${PORT:-8080}"

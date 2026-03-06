@@ -10,11 +10,12 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 WORKDIR /app
 COPY . .
 
-RUN composer install --no-dev --optimize-autoloader --no-scripts
+RUN composer install --no-dev --optimize-autoloader
 
 RUN mkdir -p storage/framework/{cache/data,sessions,views} storage/logs bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache \
-    && chmod +x start.sh
+    && chmod +x start.sh \
+    && php artisan package:discover --ansi
 
 EXPOSE 8080
 
