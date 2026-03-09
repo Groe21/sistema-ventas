@@ -96,6 +96,30 @@ class Business extends Model
         return $this->hasMany(CashMovement::class);
     }
 
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function activeSubscription()
+    {
+        return $this->hasOne(Subscription::class)
+            ->whereIn('status', ['active', 'trial'])
+            ->where('ends_at', '>=', now())
+            ->latest();
+    }
+
+    public function currentPlan(): ?Plan
+    {
+        $sub = $this->activeSubscription;
+        return $sub?->plan;
+    }
+
+    public function customerPoints(): HasMany
+    {
+        return $this->hasMany(CustomerPoint::class);
+    }
+
     /**
      * Check if business is active.
      */

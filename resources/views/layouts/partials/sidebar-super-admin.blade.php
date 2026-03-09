@@ -15,6 +15,10 @@
     <i class="bi bi-credit-card"></i> Suscripciones
 </a>
 
+<a class="nav-link {{ request()->routeIs('super-admin.plans.*') ? 'active' : '' }}" href="{{ route('super-admin.plans.index') }}">
+    <i class="bi bi-collection"></i> Planes
+</a>
+
 <a class="nav-link {{ request()->routeIs('super-admin.reports.*') ? 'active' : '' }}" href="{{ route('super-admin.reports.index') }}">
     <i class="bi bi-graph-up"></i> Reportes Globales
 </a>

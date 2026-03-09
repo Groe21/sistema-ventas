@@ -130,6 +130,8 @@
             <form method="POST" action="{{ route('super-admin.businesses.store') }}">
                 @csrf
                 <div class="modal-body">
+                    <!-- Datos del Negocio -->
+                    <h6 class="text-muted mb-3"><i class="bi bi-building"></i> Datos del Negocio</h6>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Nombre del Negocio *</label>
@@ -144,7 +146,7 @@
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Email *</label>
+                            <label class="form-label">Email del Negocio *</label>
                             <input type="email" name="email" class="form-control" required>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -158,14 +160,49 @@
                         <input type="text" name="address" class="form-control">
                     </div>
 
+                    <hr>
+
+                    <!-- Datos del Administrador -->
+                    <h6 class="text-muted mb-3"><i class="bi bi-person-badge"></i> Administrador del Negocio</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre del Administrador *</label>
+                            <input type="text" name="admin_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email del Administrador *</label>
+                            <input type="email" name="admin_email" class="form-control" required>
+                            <small class="text-muted">Se usará para iniciar sesión</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Contraseña *</label>
+                            <input type="password" name="admin_password" class="form-control" minlength="6" required>
+                            <small class="text-muted">Mínimo 6 caracteres</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Confirmar Contraseña *</label>
+                            <input type="password" name="admin_password_confirmation" class="form-control" minlength="6" required>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Plan y Estado -->
+                    <h6 class="text-muted mb-3"><i class="bi bi-star"></i> Plan y Estado</h6>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Plan *</label>
-                            <select name="plan" class="form-select" required>
-                                <option value="trial">Trial (Prueba)</option>
-                                <option value="basic">Basic</option>
-                                <option value="pro">Pro</option>
-                                <option value="enterprise">Enterprise</option>
+                            <select name="plan_id" class="form-select" required>
+                                <option value="">Seleccionar plan...</option>
+                                @foreach($plans as $plan)
+                                    <option value="{{ $plan->id }}">
+                                        {{ $plan->name }} - ${{ number_format($plan->price, 2) }}/mes
+                                        ({{ $plan->user_limit ?? '∞' }} usuarios, {{ $plan->product_limit ?? '∞' }} productos)
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -180,7 +217,7 @@
 
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i>
-                        <strong>Nota:</strong> El negocio tendrá 30 días de prueba gratis.
+                        <strong>Nota:</strong> Se creará el negocio con su administrador y una suscripción de 30 días de prueba gratis.
                     </div>
                 </div>
                 <div class="modal-footer">

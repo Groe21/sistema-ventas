@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Business;
 use App\Models\User;
 use App\Models\Sale;
+use App\Models\Plan;
+use App\Models\Subscription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -40,7 +42,9 @@ class SuperAdminController extends Controller
             ->latest()
             ->paginate(15);
 
-        return view('super-admin.businesses.index', compact('businesses'));
+        $plans = Plan::where('is_active', true)->orderBy('price')->get();
+
+        return view('super-admin.businesses.index', compact('businesses', 'plans'));
     }
 
     /**
@@ -48,23 +52,55 @@ class SuperAdminController extends Controller
      */
     public function storeBusiness(Request $request)
     {
-        $validated = $request->validate([
+        $request->validate([
             'name' => 'required|string|max:255',
             'ruc' => 'required|string|size:13|unique:businesses',
             'email' => 'required|email|unique:businesses',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
-            'plan' => 'required|in:trial,basic,pro,enterprise',
+            'plan_id' => 'required|exists:plans,id',
+            'status' => 'nullable|in:active,inactive,suspended',
+            'admin_name' => 'required|string|max:255',
+            'admin_email' => 'required|email|unique:users,email',
+            'admin_password' => 'required|string|min:6|confirmed',
         ]);
 
-        $validated['status'] = 'active';
-        $validated['subscription_start'] = now();
-        $validated['subscription_end'] = now()->addDays(30); // 30 días de prueba
+        $plan = Plan::findOrFail($request->plan_id);
 
-        Business::create($validated);
+        $business = Business::create([
+            'name' => $request->name,
+            'ruc' => $request->ruc,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'address' => $request->address,
+            'plan' => $plan->slug,
+            'status' => $request->status ?? 'active',
+            'subscription_start' => now(),
+            'subscription_end' => now()->addDays(30),
+        ]);
+
+        // Crear suscripción
+        Subscription::create([
+            'business_id' => $business->id,
+            'plan_id' => $plan->id,
+            'status' => 'trial',
+            'trial_ends_at' => now()->addDays(30),
+            'starts_at' => now(),
+            'ends_at' => now()->addDays(30),
+        ]);
+
+        // Crear usuario administrador del negocio
+        User::create([
+            'name' => $request->admin_name,
+            'email' => $request->admin_email,
+            'password' => Hash::make($request->admin_password),
+            'role' => 'admin',
+            'business_id' => $business->id,
+            'is_active' => true,
+        ]);
 
         return redirect()->route('super-admin.businesses.index')
-            ->with('success', 'Negocio creado exitosamente.');
+            ->with('success', 'Negocio, suscripción y administrador creados exitosamente.');
     }
 
     /**

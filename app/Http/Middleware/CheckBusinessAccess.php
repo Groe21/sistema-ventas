@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use App\Services\PlanService;
 
 class CheckBusinessAccess
 {
@@ -39,6 +40,12 @@ class CheckBusinessAccess
 
         // Share business data with all views
         view()->share('currentBusiness', $user->business);
+
+        // Share plan info with all views
+        $planService = app(PlanService::class);
+        $currentPlan = $planService->getPlan($user->business);
+        view()->share('currentPlan', $currentPlan);
+        view()->share('planFeatures', $currentPlan?->features ?? []);
 
         return $next($request);
     }

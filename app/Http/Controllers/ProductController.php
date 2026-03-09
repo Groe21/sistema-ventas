@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Services\PlanService;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
@@ -62,6 +63,15 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        // Check plan product limit
+        $planService = app(PlanService::class);
+        if (!$planService->canAddProduct(auth()->user()->business)) {
+            $info = $planService->getLimitsInfo(auth()->user()->business);
+            return redirect()->back()->with('error',
+                "Límite de productos alcanzado ({$info['products']['current']}/{$info['products']['limit']}). Mejora tu plan para agregar más."
+            );
+        }
+
         $validated = $request->validate([
             'code' => 'required|string|max:50',
             'name' => 'required|string|max:255',

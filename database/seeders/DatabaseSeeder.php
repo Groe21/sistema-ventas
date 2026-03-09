@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\Business;
 use App\Models\User;
 use App\Models\Customer;
+use App\Models\Plan;
+use App\Models\Subscription;
 
 class DatabaseSeeder extends Seeder
 {
@@ -94,6 +96,53 @@ class DatabaseSeeder extends Seeder
                 'city' => 'Quito',
                 'province' => 'Pichincha',
                 'is_active' => true,
+            ]
+        );
+
+        // 7. Planes del sistema
+        $starterPlan = Plan::firstOrCreate(
+            ['slug' => 'starter'],
+            [
+                'name' => 'Starter',
+                'price' => 9.99,
+                'user_limit' => 2,
+                'product_limit' => 500,
+                'features' => ['pos', 'products', 'inventory', 'customers', 'basic_reports', 'cash_register'],
+                'is_active' => true,
+            ]
+        );
+
+        $businessPlan = Plan::firstOrCreate(
+            ['slug' => 'business'],
+            [
+                'name' => 'Business',
+                'price' => 24.99,
+                'user_limit' => 5,
+                'product_limit' => 5000,
+                'features' => ['pos', 'products', 'inventory', 'customers', 'basic_reports', 'cash_register', 'advanced_reports', 'export_excel', 'export_pdf', 'advanced_dashboard', 'low_stock_alerts'],
+                'is_active' => true,
+            ]
+        );
+
+        $premiumPlan = Plan::firstOrCreate(
+            ['slug' => 'premium'],
+            [
+                'name' => 'Premium',
+                'price' => 49.99,
+                'user_limit' => 0, // unlimited
+                'product_limit' => 0, // unlimited
+                'features' => ['pos', 'products', 'inventory', 'customers', 'basic_reports', 'cash_register', 'advanced_reports', 'export_excel', 'export_pdf', 'advanced_dashboard', 'low_stock_alerts', 'loyalty_points', 'customer_portal', 'promotions'],
+                'is_active' => true,
+            ]
+        );
+
+        // 8. Suscripción del negocio demo (Premium para demostrar todas las funcionalidades)
+        Subscription::firstOrCreate(
+            ['business_id' => $business->id, 'plan_id' => $premiumPlan->id],
+            [
+                'status' => 'active',
+                'starts_at' => now(),
+                'ends_at' => now()->addYears(5),
             ]
         );
     }

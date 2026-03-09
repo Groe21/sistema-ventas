@@ -8,6 +8,9 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\CashRegister;
 use App\Models\CashMovement;
+use App\Models\CustomerPoint;
+use App\Models\PointTransaction;
+use App\Services\PlanService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -45,6 +48,7 @@ class POSController extends Controller
             'items.*.quantity' => 'required|integer|min:1',
             'discount' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:500',
+            'redeem_points' => 'nullable|integer|min:0',
         ]);
 
         $businessId = auth()->user()->business_id;
@@ -144,6 +148,50 @@ class POSController extends Controller
                     'description' => "Venta {$invoiceNumber}",
                     'payment_method' => $validated['payment_method'],
                 ]);
+            }
+
+            // Loyalty points: award points if plan supports it
+            $planService = app(PlanService::class);
+            $business = auth()->user()->business;
+            if ($planService->hasFeature($business, 'loyalty_points') && $total > 0) {
+                $pointsEarned = $planService->calculatePoints($total);
+                if ($pointsEarned > 0) {
+                    $pointRecord = CustomerPoint::firstOrCreate(
+                        ['business_id' => $businessId, 'customer_id' => $validated['customer_id']],
+                        ['points_balance' => 0]
+                    );
+                    $pointRecord->increment('points_balance', $pointsEarned);
+
+                    PointTransaction::create([
+                        'business_id' => $businessId,
+                        'customer_id' => $validated['customer_id'],
+                        'sale_id' => $sale->id,
+                        'points_earned' => $pointsEarned,
+                        'points_used' => 0,
+                        'description' => "Puntos por venta {$invoiceNumber}",
+                    ]);
+                }
+            }
+
+            // Redeem points if requested
+            $redeemPoints = (int) ($request->input('redeem_points', 0));
+            if ($redeemPoints > 0 && $planService->hasFeature($business, 'loyalty_points')) {
+                $pointRecord = CustomerPoint::where('business_id', $businessId)
+                    ->where('customer_id', $validated['customer_id'])
+                    ->first();
+
+                if ($pointRecord && $pointRecord->points_balance >= $redeemPoints) {
+                    $pointRecord->decrement('points_balance', $redeemPoints);
+
+                    PointTransaction::create([
+                        'business_id' => $businessId,
+                        'customer_id' => $validated['customer_id'],
+                        'sale_id' => $sale->id,
+                        'points_earned' => 0,
+                        'points_used' => $redeemPoints,
+                        'description' => "Canje de puntos en venta {$invoiceNumber}",
+                    ]);
+                }
             }
 
             DB::commit();

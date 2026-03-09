@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'business' => \App\Http\Middleware\CheckBusinessAccess::class,
             'super-admin' => \App\Http\Middleware\CheckSuperAdmin::class,
             'admin' => \App\Http\Middleware\CheckAdmin::class,
+            'plan.feature' => \App\Http\Middleware\CheckPlanFeature::class,
+            'plan.limit' => \App\Http\Middleware\CheckPlanLimit::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -88,4 +88,19 @@ class Customer extends Model
             ->where('status', 'completed')
             ->sum('total');
     }
+
+    public function points()
+    {
+        return $this->hasOne(CustomerPoint::class);
+    }
+
+    public function pointTransactions()
+    {
+        return $this->hasMany(PointTransaction::class);
+    }
+
+    public function getPointsBalance(): int
+    {
+        return $this->points?->points_balance ?? 0;
+    }
 }

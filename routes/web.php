@@ -10,6 +10,10 @@ use App\Http\Controllers\CashController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SuperAdmin\SuperAdminController;
+use App\Http\Controllers\SuperAdmin\PlanController;
+use App\Http\Controllers\SuperAdmin\SubscriptionController;
+use App\Http\Controllers\LoyaltyController;
+use App\Http\Controllers\CustomerPortalController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,6 +30,10 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::get('/', function () {
     return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
 });
+
+// Customer Points Portal (public)
+Route::get('/customer-points', [CustomerPortalController::class, 'index'])->name('customer-points');
+Route::post('/customer-points', [CustomerPortalController::class, 'lookup'])->name('customer-points.lookup');
 
 /*
 |--------------------------------------------------------------------------
@@ -45,10 +53,18 @@ Route::middleware(['auth', 'super-admin'])->prefix('super-admin')->name('super-a
     Route::put('/users/{user}', [SuperAdminController::class, 'updateUser'])->name('users.update');
     Route::delete('/users/{user}', [SuperAdminController::class, 'destroyUser'])->name('users.destroy');
     
-    // Subscriptions (placeholder)
-    Route::get('/subscriptions', function () {
-        return view('super-admin.subscriptions.index');
-    })->name('subscriptions.index');
+    // Subscriptions Management
+    Route::get('/subscriptions', [SubscriptionController::class, 'index'])->name('subscriptions.index');
+    Route::post('/subscriptions', [SubscriptionController::class, 'store'])->name('subscriptions.store');
+    Route::post('/subscriptions/{subscription}/activate', [SubscriptionController::class, 'activate'])->name('subscriptions.activate');
+    Route::post('/subscriptions/{subscription}/deactivate', [SubscriptionController::class, 'deactivate'])->name('subscriptions.deactivate');
+    Route::post('/subscriptions/{subscription}/renew', [SubscriptionController::class, 'renew'])->name('subscriptions.renew');
+
+    // Plans Management
+    Route::get('/plans', [PlanController::class, 'index'])->name('plans.index');
+    Route::post('/plans', [PlanController::class, 'store'])->name('plans.store');
+    Route::put('/plans/{plan}', [PlanController::class, 'update'])->name('plans.update');
+    Route::delete('/plans/{plan}', [PlanController::class, 'destroy'])->name('plans.destroy');
     
     // Reports (placeholder)
     Route::get('/reports', function () {
@@ -98,6 +114,11 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+
+        // Loyalty / Points Management
+        Route::get('/loyalty', [LoyaltyController::class, 'index'])->name('loyalty.index');
+        Route::get('/loyalty/{customer}/history', [LoyaltyController::class, 'history'])->name('loyalty.history');
+        Route::post('/loyalty/{customer}/adjust', [LoyaltyController::class, 'adjustPoints'])->name('loyalty.adjust');
         
         // Reports (placeholder)
         Route::get('/reports', function () {

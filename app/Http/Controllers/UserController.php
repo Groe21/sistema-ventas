@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\PlanService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -46,6 +47,15 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        // Check plan user limit
+        $planService = app(PlanService::class);
+        if (!$planService->canAddUser(auth()->user()->business)) {
+            $info = $planService->getLimitsInfo(auth()->user()->business);
+            return redirect()->back()->with('error',
+                "Límite de usuarios alcanzado ({$info['users']['current']}/{$info['users']['limit']}). Mejora tu plan para agregar más."
+            );
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',

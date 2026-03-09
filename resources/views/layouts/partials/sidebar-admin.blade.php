@@ -30,6 +30,12 @@
     <i class="bi bi-person-badge"></i> Usuarios
 </a>
 
+@if(in_array('loyalty_points', $planFeatures ?? []))
+<a class="nav-link {{ request()->routeIs('loyalty.*') ? 'active' : '' }}" href="{{ route('loyalty.index') }}">
+    <i class="bi bi-star"></i> Fidelización
+</a>
+@endif
+
 <a class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}" href="{{ route('reports.index') }}">
     <i class="bi bi-graph-up"></i> Reportes
 </a>
