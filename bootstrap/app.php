@@ -22,5 +22,12 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Show detailed errors for super-admin users
+        $exceptions->render(function (\Throwable $e, $request) {
+            if ($request->user()?->role === 'super_admin' && !app()->hasDebugModeEnabled()) {
+                return response()->view('errors.debug', [
+                    'exception' => $e,
+                ], 500);
+            }
+        });
     })->create();

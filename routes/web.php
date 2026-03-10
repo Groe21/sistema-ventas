@@ -37,12 +37,57 @@ Route::post('/customer-points', [CustomerPortalController::class, 'lookup'])->na
 
 // Temporary diagnostic route (remove after fixing)
 Route::get('/debug-plans', function () {
+    $results = [];
+    
+    // Test DB connection
     try {
-        $plans = \App\Models\Plan::all();
-        return response()->json(['ok' => true, 'plans_count' => $plans->count(), 'plans' => $plans->toArray()]);
+        \DB::connection()->getPdo();
+        $results['db'] = 'OK';
     } catch (\Exception $e) {
-        return response()->json(['ok' => false, 'error' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]);
+        $results['db'] = 'FAIL: ' . $e->getMessage();
     }
+    
+    // Test each table
+    foreach (['businesses', 'users', 'plans', 'subscriptions', 'customer_points', 'point_transactions'] as $table) {
+        try {
+            $count = \DB::table($table)->count();
+            $results["table_{$table}"] = "OK ({$count} rows)";
+        } catch (\Exception $e) {
+            $results["table_{$table}"] = 'FAIL: ' . $e->getMessage();
+        }
+    }
+    
+    // Test view rendering
+    try {
+        $businesses = \App\Models\Business::withCount('users')->latest()->paginate(15);
+        $plans = \App\Models\Plan::where('is_active', true)->orderBy('price')->get();
+        $html = view('super-admin.businesses.index', compact('businesses', 'plans'))->render();
+        $results['view_businesses'] = 'OK (rendered ' . strlen($html) . ' bytes)';
+    } catch (\Exception $e) {
+        $results['view_businesses'] = 'FAIL: ' . $e->getMessage() . ' at ' . basename($e->getFile()) . ':' . $e->getLine();
+    }
+    
+    try {
+        $plans = \App\Models\Plan::withCount('subscriptions')->get();
+        $html = view('super-admin.plans.index', compact('plans'))->render();
+        $results['view_plans'] = 'OK (rendered ' . strlen($html) . ' bytes)';
+    } catch (\Exception $e) {
+        $results['view_plans'] = 'FAIL: ' . $e->getMessage() . ' at ' . basename($e->getFile()) . ':' . $e->getLine();
+    }
+
+    // Check Laravel log for recent errors
+    try {
+        $logFile = storage_path('logs/laravel.log');
+        if (file_exists($logFile)) {
+            $results['last_log_lines'] = implode("\n", array_slice(file($logFile), -20));
+        } else {
+            $results['last_log_lines'] = 'No log file';
+        }
+    } catch (\Exception $e) {
+        $results['last_log_lines'] = 'Cannot read log';
+    }
+    
+    return response()->json($results, 200, [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 });
 
 /*
