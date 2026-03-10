@@ -67,6 +67,15 @@ class SuperAdminController extends Controller
             'admin_name' => 'required|string|max:255',
             'admin_email' => 'required|email|unique:users,email',
             'admin_password' => 'required|string|min:6|confirmed',
+        ], [
+            'ruc.unique' => 'Ya existe un negocio con ese RUC.',
+            'ruc.size' => 'El RUC debe tener exactamente 13 dígitos.',
+            'email.unique' => 'Ya existe un negocio con ese email.',
+            'admin_email.unique' => 'Ya existe un usuario con ese email.',
+            'admin_password.confirmed' => 'Las contraseñas no coinciden.',
+            'admin_password.min' => 'La contraseña debe tener al menos 6 caracteres.',
+            'plan_id.required' => 'Debe seleccionar un plan.',
+            'plan_id.exists' => 'El plan seleccionado no es válido.',
         ]);
 
         $plan = Plan::findOrFail($request->plan_id);

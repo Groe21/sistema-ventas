@@ -22,8 +22,12 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // Show detailed errors for super-admin users
+        // Show detailed errors for super-admin users (except validation errors)
         $exceptions->render(function (\Throwable $e, $request) {
+            // Don't catch validation exceptions - let Laravel handle redirect back
+            if ($e instanceof \Illuminate\Validation\ValidationException) {
+                return null;
+            }
             if ($request->user()?->role === 'super_admin' && !app()->hasDebugModeEnabled()) {
                 return response()->view('errors.debug', [
                     'exception' => $e,
