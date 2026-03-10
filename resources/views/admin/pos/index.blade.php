@@ -99,10 +99,18 @@
                         <div class="btn-group w-100" role="group">
                             <input type="radio" class="btn-check" name="payment_method" value="cash" id="pay_cash" checked>
                             <label class="btn btn-outline-success btn-sm" for="pay_cash"><i class="bi bi-cash"></i> <span class="d-none d-xl-inline">Efectivo</span></label>
+                            @if(in_array('payment_card', $planFeatures ?? []))
                             <input type="radio" class="btn-check" name="payment_method" value="card" id="pay_card">
                             <label class="btn btn-outline-primary btn-sm" for="pay_card"><i class="bi bi-credit-card"></i> <span class="d-none d-xl-inline">Tarjeta</span></label>
+                            @endif
+                            @if(in_array('payment_transfer', $planFeatures ?? []))
                             <input type="radio" class="btn-check" name="payment_method" value="transfer" id="pay_transfer">
                             <label class="btn btn-outline-info btn-sm" for="pay_transfer"><i class="bi bi-bank"></i> <span class="d-none d-xl-inline">Transf.</span></label>
+                            @endif
+                            @if(in_array('payment_credit', $planFeatures ?? []))
+                            <input type="radio" class="btn-check" name="payment_method" value="credit" id="pay_credit">
+                            <label class="btn btn-outline-warning btn-sm" for="pay_credit"><i class="bi bi-receipt"></i> <span class="d-none d-xl-inline">Crédito</span></label>
+                            @endif
                         </div>
                     </div>
                 </div>

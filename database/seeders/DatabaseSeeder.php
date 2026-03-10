@@ -119,7 +119,7 @@ class DatabaseSeeder extends Seeder
                 'price' => 24.99,
                 'user_limit' => 5,
                 'product_limit' => 5000,
-                'features' => ['pos', 'products', 'inventory', 'customers', 'basic_reports', 'cash_register', 'advanced_reports', 'export_excel', 'export_pdf', 'advanced_dashboard', 'low_stock_alerts'],
+                'features' => ['pos', 'products', 'inventory', 'customers', 'basic_reports', 'cash_register', 'advanced_reports', 'export_excel', 'export_pdf', 'advanced_dashboard', 'low_stock_alerts', 'payment_card', 'payment_transfer'],
                 'is_active' => true,
             ]
         );
@@ -131,7 +131,7 @@ class DatabaseSeeder extends Seeder
                 'price' => 49.99,
                 'user_limit' => 0, // unlimited
                 'product_limit' => 0, // unlimited
-                'features' => ['pos', 'products', 'inventory', 'customers', 'basic_reports', 'cash_register', 'advanced_reports', 'export_excel', 'export_pdf', 'advanced_dashboard', 'low_stock_alerts', 'loyalty_points', 'customer_portal', 'promotions'],
+                'features' => ['pos', 'products', 'inventory', 'customers', 'basic_reports', 'cash_register', 'advanced_reports', 'export_excel', 'export_pdf', 'advanced_dashboard', 'low_stock_alerts', 'loyalty_points', 'customer_portal', 'promotions', 'payment_card', 'payment_transfer', 'payment_credit'],
                 'is_active' => true,
             ]
         );

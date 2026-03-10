@@ -40,9 +40,29 @@ class POSController extends Controller
 
     public function store(Request $request)
     {
+        $businessId = auth()->user()->business_id;
+
+        // Determinar métodos de pago permitidos según el plan
+        $allowedMethods = ['cash']; // Efectivo siempre disponible
+        try {
+            $planService = app(PlanService::class);
+            $business = auth()->user()->business;
+            if ($planService->hasFeature($business, 'payment_card')) {
+                $allowedMethods[] = 'card';
+            }
+            if ($planService->hasFeature($business, 'payment_transfer')) {
+                $allowedMethods[] = 'transfer';
+            }
+            if ($planService->hasFeature($business, 'payment_credit')) {
+                $allowedMethods[] = 'credit';
+            }
+        } catch (\Exception $e) {
+            // Si falla la verificación, solo permitir efectivo
+        }
+
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
-            'payment_method' => 'required|in:cash,card,transfer,credit',
+            'payment_method' => 'required|in:' . implode(',', $allowedMethods),
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
@@ -51,7 +71,6 @@ class POSController extends Controller
             'redeem_points' => 'nullable|integer|min:0',
         ]);
 
-        $businessId = auth()->user()->business_id;
 
         try {
             DB::beginTransaction();

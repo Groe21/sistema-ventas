@@ -17,6 +17,9 @@ $allFeatures = [
     'loyalty_points' => 'Sistema de Puntos',
     'customer_portal' => 'Portal de Clientes',
     'promotions' => 'Promociones',
+    'payment_card' => 'Pago con Tarjeta',
+    'payment_transfer' => 'Pago por Transferencia',
+    'payment_credit' => 'Pago a Crédito',
 ];
 @endphp
 
