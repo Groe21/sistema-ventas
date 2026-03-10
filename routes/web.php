@@ -101,6 +101,8 @@ Route::middleware(['auth', 'super-admin'])->prefix('super-admin')->name('super-a
     // Businesses Management
     Route::get('/businesses', [SuperAdminController::class, 'businesses'])->name('businesses.index');
     Route::post('/businesses', [SuperAdminController::class, 'storeBusiness'])->name('businesses.store');
+    Route::put('/businesses/{business}', [SuperAdminController::class, 'updateBusiness'])->name('businesses.update');
+    Route::delete('/businesses/{business}', [SuperAdminController::class, 'destroyBusiness'])->name('businesses.destroy');
     
     // Users Management
     Route::get('/users', [SuperAdminController::class, 'users'])->name('users.index');

@@ -117,6 +117,75 @@ class SuperAdminController extends Controller
     }
 
     /**
+     * Update an existing business.
+     */
+    public function updateBusiness(Request $request, Business $business)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'ruc' => "required|string|size:13|unique:businesses,ruc,{$business->id}",
+            'email' => "required|email|unique:businesses,email,{$business->id}",
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
+            'plan_id' => 'required|exists:plans,id',
+            'status' => 'required|in:active,inactive,suspended',
+        ], [
+            'ruc.unique' => 'Ya existe otro negocio con ese RUC.',
+            'ruc.size' => 'El RUC debe tener exactamente 13 dígitos.',
+            'email.unique' => 'Ya existe otro negocio con ese email.',
+            'plan_id.required' => 'Debe seleccionar un plan.',
+        ]);
+
+        $plan = Plan::findOrFail($request->plan_id);
+
+        $business->update([
+            'name' => $request->name,
+            'ruc' => $request->ruc,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'address' => $request->address,
+            'plan' => $plan->slug,
+            'status' => $request->status,
+        ]);
+
+        // Actualizar suscripción si cambió el plan
+        $activeSub = $business->subscriptions()->whereIn('status', ['active', 'trial'])->latest()->first();
+        if ($activeSub && $activeSub->plan_id !== $plan->id) {
+            $activeSub->update(['plan_id' => $plan->id]);
+        } elseif (!$activeSub) {
+            Subscription::create([
+                'business_id' => $business->id,
+                'plan_id' => $plan->id,
+                'status' => 'active',
+                'starts_at' => now(),
+                'ends_at' => now()->addDays(30),
+            ]);
+        }
+
+        return redirect()->route('super-admin.businesses.index')
+            ->with('success', "Negocio \"{$business->name}\" actualizado exitosamente.");
+    }
+
+    /**
+     * Delete a business and its related data.
+     */
+    public function destroyBusiness(Business $business)
+    {
+        $name = $business->name;
+
+        // Eliminar usuarios del negocio
+        $business->users()->delete();
+
+        // Eliminar suscripciones
+        $business->subscriptions()->delete();
+
+        $business->delete();
+
+        return redirect()->route('super-admin.businesses.index')
+            ->with('success', "Negocio \"{$name}\" eliminado exitosamente.");
+    }
+
+    /**
      * Display all users across all businesses.
      */
     public function users(Request $request)

@@ -64,9 +64,9 @@
                                 <td>{{ $business->email }}</td>
                                 <td>
                                     <span class="badge 
-                                        @if($business->plan === 'enterprise') bg-primary
-                                        @elseif($business->plan === 'pro') bg-success
-                                        @elseif($business->plan === 'basic') bg-info
+                                        @if(in_array($business->plan, ['premium', 'enterprise'])) bg-primary
+                                        @elseif(in_array($business->plan, ['business', 'pro'])) bg-success
+                                        @elseif(in_array($business->plan, ['starter', 'basic'])) bg-info
                                         @else bg-secondary
                                         @endif">
                                         {{ strtoupper($business->plan) }}
@@ -103,18 +103,109 @@
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-primary" title="Ver detalles">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
-                                        <button class="btn btn-outline-warning" title="Editar">
+                                        <button class="btn btn-outline-warning" title="Editar" data-bs-toggle="modal" data-bs-target="#editBusinessModal{{ $business->id }}">
                                             <i class="bi bi-pencil"></i>
                                         </button>
-                                        <button class="btn btn-outline-danger" title="Suspender">
-                                            <i class="bi bi-ban"></i>
+                                        <button class="btn btn-outline-danger" title="Eliminar" data-bs-toggle="modal" data-bs-target="#deleteBusinessModal{{ $business->id }}">
+                                            <i class="bi bi-trash"></i>
                                         </button>
                                     </div>
                                 </td>
                             </tr>
+
+                            <!-- Edit Business Modal -->
+                            <div class="modal fade" id="editBusinessModal{{ $business->id }}" tabindex="-1">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title"><i class="bi bi-pencil"></i> Editar: {{ $business->name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <form method="POST" action="{{ route('super-admin.businesses.update', $business) }}">
+                                            @csrf @method('PUT')
+                                            <div class="modal-body">
+                                                <h6 class="text-muted mb-3"><i class="bi bi-building"></i> Datos del Negocio</h6>
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label">Nombre del Negocio *</label>
+                                                        <input type="text" name="name" class="form-control" value="{{ $business->name }}" required>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label">RUC *</label>
+                                                        <input type="text" name="ruc" class="form-control" maxlength="13" value="{{ $business->ruc }}" required>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label">Email *</label>
+                                                        <input type="email" name="email" class="form-control" value="{{ $business->email }}" required>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label">Teléfono</label>
+                                                        <input type="text" name="phone" class="form-control" value="{{ $business->phone }}">
+                                                    </div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Dirección</label>
+                                                    <input type="text" name="address" class="form-control" value="{{ $business->address }}">
+                                                </div>
+
+                                                <hr>
+                                                <h6 class="text-muted mb-3"><i class="bi bi-star"></i> Plan y Estado</h6>
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label">Plan *</label>
+                                                        <select name="plan_id" class="form-select" required>
+                                                            @foreach($plans as $plan)
+                                                                <option value="{{ $plan->id }}" {{ $business->plan === $plan->slug ? 'selected' : '' }}>
+                                                                    {{ $plan->name }} - ${{ number_format($plan->price, 2) }}/mes
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label class="form-label">Estado *</label>
+                                                        <select name="status" class="form-select" required>
+                                                            <option value="active" {{ $business->status === 'active' ? 'selected' : '' }}>Activo</option>
+                                                            <option value="inactive" {{ $business->status === 'inactive' ? 'selected' : '' }}>Inactivo</option>
+                                                            <option value="suspended" {{ $business->status === 'suspended' ? 'selected' : '' }}>Suspendido</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="submit" class="btn btn-warning"><i class="bi bi-save"></i> Guardar Cambios</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Delete Business Modal -->
+                            <div class="modal fade" id="deleteBusinessModal{{ $business->id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-danger text-white">
+                                            <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Eliminar Negocio</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>¿Está seguro de eliminar el negocio <strong>{{ $business->name }}</strong>?</p>
+                                            <div class="alert alert-danger">
+                                                <i class="bi bi-exclamation-triangle"></i> Esta acción eliminará también todos los usuarios ({{ $business->users_count }}) y suscripciones asociadas. No se puede deshacer.
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <form method="POST" action="{{ route('super-admin.businesses.destroy', $business) }}">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Eliminar</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             @endforeach
                         </tbody>
                     </table>
