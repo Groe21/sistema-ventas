@@ -92,7 +92,7 @@ $allFeatures = [
                     <small class="text-muted fw-bold">Características:</small>
                     <ul class="list-unstyled mb-0 mt-1">
                         @foreach($plan->features as $feature)
-                        <li><i class="bi bi-check-circle text-success"></i> {{ str_replace('_', ' ', ucfirst($feature)) }}</li>
+                        <li><i class="bi bi-check-circle text-success"></i> {{ $allFeatures[$feature] ?? ucfirst(str_replace('_', ' ', $feature)) }}</li>
                         @endforeach
                     </ul>
                 </div>
