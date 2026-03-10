@@ -1,6 +1,25 @@
 @extends('layouts.app')
 @section('title', 'Gestión de Planes')
 
+@php
+$allFeatures = [
+    'pos' => 'Punto de Venta',
+    'products' => 'Gestión de Productos',
+    'inventory' => 'Inventario Básico',
+    'customers' => 'Clientes',
+    'basic_reports' => 'Reportes Básicos',
+    'cash_register' => 'Gestión de Caja',
+    'advanced_reports' => 'Reportes Avanzados',
+    'export_excel' => 'Exportar a Excel',
+    'export_pdf' => 'Exportar a PDF',
+    'advanced_dashboard' => 'Dashboard Avanzado',
+    'low_stock_alerts' => 'Alertas de Stock Bajo',
+    'loyalty_points' => 'Sistema de Puntos',
+    'customer_portal' => 'Portal de Clientes',
+    'promotions' => 'Promociones',
+];
+@endphp
+
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2><i class="bi bi-collection"></i> Planes del Sistema</h2>
@@ -131,24 +150,6 @@
                         </div>
                         <div class="mt-3">
                             <label class="form-label">Características</label>
-                            @php
-                            $allFeatures = [
-                                'pos' => 'Punto de Venta',
-                                'products' => 'Gestión de Productos',
-                                'inventory' => 'Inventario Básico',
-                                'customers' => 'Clientes',
-                                'basic_reports' => 'Reportes Básicos',
-                                'cash_register' => 'Gestión de Caja',
-                                'advanced_reports' => 'Reportes Avanzados',
-                                'export_excel' => 'Exportar a Excel',
-                                'export_pdf' => 'Exportar a PDF',
-                                'advanced_dashboard' => 'Dashboard Avanzado',
-                                'low_stock_alerts' => 'Alertas de Stock Bajo',
-                                'loyalty_points' => 'Sistema de Puntos',
-                                'customer_portal' => 'Portal de Clientes',
-                                'promotions' => 'Promociones',
-                            ];
-                            @endphp
                             @foreach($allFeatures as $key => $label)
                             <div class="form-check">
                                 <input type="checkbox" class="form-check-input" name="features[]" value="{{ $key }}" id="edit_feat_{{ $plan->id }}_{{ $key }}"

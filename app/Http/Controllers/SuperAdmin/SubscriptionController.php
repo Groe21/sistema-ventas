@@ -43,7 +43,7 @@ class SubscriptionController extends Controller
             $plans = Plan::where('is_active', true)->orderBy('price')->get();
             $businesses = Business::orderBy('name')->get();
         } catch (\Exception $e) {
-            $subscriptions = collect();
+            $subscriptions = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15);
             $stats = ['total' => 0, 'active' => 0, 'trial' => 0, 'expired' => 0];
             $plans = collect();
             $businesses = Business::orderBy('name')->get();

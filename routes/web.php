@@ -35,6 +35,16 @@ Route::get('/', function () {
 Route::get('/customer-points', [CustomerPortalController::class, 'index'])->name('customer-points');
 Route::post('/customer-points', [CustomerPortalController::class, 'lookup'])->name('customer-points.lookup');
 
+// Temporary diagnostic route (remove after fixing)
+Route::get('/debug-plans', function () {
+    try {
+        $plans = \App\Models\Plan::all();
+        return response()->json(['ok' => true, 'plans_count' => $plans->count(), 'plans' => $plans->toArray()]);
+    } catch (\Exception $e) {
+        return response()->json(['ok' => false, 'error' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]);
+    }
+});
+
 /*
 |--------------------------------------------------------------------------
 | Super Admin Routes
