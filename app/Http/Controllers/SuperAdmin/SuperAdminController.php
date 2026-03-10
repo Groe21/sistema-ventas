@@ -42,7 +42,11 @@ class SuperAdminController extends Controller
             ->latest()
             ->paginate(15);
 
-        $plans = Plan::where('is_active', true)->orderBy('price')->get();
+        try {
+            $plans = Plan::where('is_active', true)->orderBy('price')->get();
+        } catch (\Exception $e) {
+            $plans = collect();
+        }
 
         return view('super-admin.businesses.index', compact('businesses', 'plans'));
     }

@@ -64,12 +64,16 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         // Check plan product limit
-        $planService = app(PlanService::class);
-        if (!$planService->canAddProduct(auth()->user()->business)) {
-            $info = $planService->getLimitsInfo(auth()->user()->business);
-            return redirect()->back()->with('error',
-                "Límite de productos alcanzado ({$info['products']['current']}/{$info['products']['limit']}). Mejora tu plan para agregar más."
-            );
+        try {
+            $planService = app(PlanService::class);
+            if (!$planService->canAddProduct(auth()->user()->business)) {
+                $info = $planService->getLimitsInfo(auth()->user()->business);
+                return redirect()->back()->with('error',
+                    "Límite de productos alcanzado ({$info['products']['current']}/{$info['products']['limit']}). Mejora tu plan para agregar más."
+                );
+            }
+        } catch (\Exception $e) {
+            // Plan tables may not exist yet, allow operation
         }
 
         $validated = $request->validate([

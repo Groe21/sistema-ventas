@@ -151,47 +151,51 @@ class POSController extends Controller
             }
 
             // Loyalty points: award points if plan supports it
-            $planService = app(PlanService::class);
-            $business = auth()->user()->business;
-            if ($planService->hasFeature($business, 'loyalty_points') && $total > 0) {
-                $pointsEarned = $planService->calculatePoints($total);
-                if ($pointsEarned > 0) {
-                    $pointRecord = CustomerPoint::firstOrCreate(
-                        ['business_id' => $businessId, 'customer_id' => $validated['customer_id']],
-                        ['points_balance' => 0]
-                    );
-                    $pointRecord->increment('points_balance', $pointsEarned);
+            try {
+                $planService = app(PlanService::class);
+                $business = auth()->user()->business;
+                if ($planService->hasFeature($business, 'loyalty_points') && $total > 0) {
+                    $pointsEarned = $planService->calculatePoints($total);
+                    if ($pointsEarned > 0) {
+                        $pointRecord = CustomerPoint::firstOrCreate(
+                            ['business_id' => $businessId, 'customer_id' => $validated['customer_id']],
+                            ['points_balance' => 0]
+                        );
+                        $pointRecord->increment('points_balance', $pointsEarned);
 
-                    PointTransaction::create([
-                        'business_id' => $businessId,
-                        'customer_id' => $validated['customer_id'],
-                        'sale_id' => $sale->id,
-                        'points_earned' => $pointsEarned,
-                        'points_used' => 0,
-                        'description' => "Puntos por venta {$invoiceNumber}",
-                    ]);
+                        PointTransaction::create([
+                            'business_id' => $businessId,
+                            'customer_id' => $validated['customer_id'],
+                            'sale_id' => $sale->id,
+                            'points_earned' => $pointsEarned,
+                            'points_used' => 0,
+                            'description' => "Puntos por venta {$invoiceNumber}",
+                        ]);
+                    }
                 }
-            }
 
-            // Redeem points if requested
-            $redeemPoints = (int) ($request->input('redeem_points', 0));
-            if ($redeemPoints > 0 && $planService->hasFeature($business, 'loyalty_points')) {
-                $pointRecord = CustomerPoint::where('business_id', $businessId)
-                    ->where('customer_id', $validated['customer_id'])
-                    ->first();
+                // Redeem points if requested
+                $redeemPoints = (int) ($request->input('redeem_points', 0));
+                if ($redeemPoints > 0 && $planService->hasFeature($business, 'loyalty_points')) {
+                    $pointRecord = CustomerPoint::where('business_id', $businessId)
+                        ->where('customer_id', $validated['customer_id'])
+                        ->first();
 
-                if ($pointRecord && $pointRecord->points_balance >= $redeemPoints) {
-                    $pointRecord->decrement('points_balance', $redeemPoints);
+                    if ($pointRecord && $pointRecord->points_balance >= $redeemPoints) {
+                        $pointRecord->decrement('points_balance', $redeemPoints);
 
-                    PointTransaction::create([
-                        'business_id' => $businessId,
-                        'customer_id' => $validated['customer_id'],
-                        'sale_id' => $sale->id,
-                        'points_earned' => 0,
-                        'points_used' => $redeemPoints,
-                        'description' => "Canje de puntos en venta {$invoiceNumber}",
-                    ]);
+                        PointTransaction::create([
+                            'business_id' => $businessId,
+                            'customer_id' => $validated['customer_id'],
+                            'sale_id' => $sale->id,
+                            'points_earned' => 0,
+                            'points_used' => $redeemPoints,
+                            'description' => "Canje de puntos en venta {$invoiceNumber}",
+                        ]);
+                    }
                 }
+            } catch (\Exception $e) {
+                // Plan/points tables may not exist yet, skip loyalty
             }
 
             DB::commit();

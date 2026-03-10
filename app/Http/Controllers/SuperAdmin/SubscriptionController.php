@@ -12,35 +12,42 @@ class SubscriptionController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Subscription::with(['business', 'plan']);
+        try {
+            $query = Subscription::with(['business', 'plan']);
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->filled('plan_id')) {
+                $query->where('plan_id', $request->plan_id);
+            }
+
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->whereHas('business', function ($q) use ($search) {
+                    $q->where('name', 'ilike', "%{$search}%")
+                      ->orWhere('ruc', 'ilike', "%{$search}%");
+                });
+            }
+
+            $subscriptions = $query->latest()->paginate(15);
+
+            $stats = [
+                'total' => Subscription::count(),
+                'active' => Subscription::where('status', 'active')->where('ends_at', '>=', now())->count(),
+                'trial' => Subscription::where('status', 'trial')->where('ends_at', '>=', now())->count(),
+                'expired' => Subscription::where('ends_at', '<', now())->count(),
+            ];
+
+            $plans = Plan::where('is_active', true)->orderBy('price')->get();
+            $businesses = Business::orderBy('name')->get();
+        } catch (\Exception $e) {
+            $subscriptions = collect();
+            $stats = ['total' => 0, 'active' => 0, 'trial' => 0, 'expired' => 0];
+            $plans = collect();
+            $businesses = Business::orderBy('name')->get();
         }
-
-        if ($request->filled('plan_id')) {
-            $query->where('plan_id', $request->plan_id);
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->whereHas('business', function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                  ->orWhere('ruc', 'ilike', "%{$search}%");
-            });
-        }
-
-        $subscriptions = $query->latest()->paginate(15);
-
-        $stats = [
-            'total' => Subscription::count(),
-            'active' => Subscription::where('status', 'active')->where('ends_at', '>=', now())->count(),
-            'trial' => Subscription::where('status', 'trial')->where('ends_at', '>=', now())->count(),
-            'expired' => Subscription::where('ends_at', '<', now())->count(),
-        ];
-
-        $plans = Plan::where('is_active', true)->orderBy('price')->get();
-        $businesses = Business::orderBy('name')->get();
 
         return view('super-admin.subscriptions.index', compact('subscriptions', 'stats', 'plans', 'businesses'));
     }

@@ -37,7 +37,7 @@ class DatabaseSeeder extends Seeder
                 'city' => 'Quito',
                 'province' => 'Pichincha',
                 'status' => 'active',
-                'plan' => 'professional',
+                'plan' => 'premium',
                 'subscription_start' => now(),
                 'subscription_end' => now()->addYears(5),
             ]

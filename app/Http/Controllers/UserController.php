@@ -48,12 +48,16 @@ class UserController extends Controller
     public function store(Request $request)
     {
         // Check plan user limit
-        $planService = app(PlanService::class);
-        if (!$planService->canAddUser(auth()->user()->business)) {
-            $info = $planService->getLimitsInfo(auth()->user()->business);
-            return redirect()->back()->with('error',
-                "Límite de usuarios alcanzado ({$info['users']['current']}/{$info['users']['limit']}). Mejora tu plan para agregar más."
-            );
+        try {
+            $planService = app(PlanService::class);
+            if (!$planService->canAddUser(auth()->user()->business)) {
+                $info = $planService->getLimitsInfo(auth()->user()->business);
+                return redirect()->back()->with('error',
+                    "Límite de usuarios alcanzado ({$info['users']['current']}/{$info['users']['limit']}). Mejora tu plan para agregar más."
+                );
+            }
+        } catch (\Exception $e) {
+            // Plan tables may not exist yet, allow operation
         }
 
         $request->validate([

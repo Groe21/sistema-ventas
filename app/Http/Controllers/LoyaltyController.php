@@ -13,26 +13,31 @@ class LoyaltyController extends Controller
     {
         $businessId = auth()->user()->business_id;
 
-        $query = CustomerPoint::where('business_id', $businessId)
-            ->with('customer')
-            ->where('points_balance', '>', 0);
+        try {
+            $query = CustomerPoint::where('business_id', $businessId)
+                ->with('customer')
+                ->where('points_balance', '>', 0);
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->whereHas('customer', function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                  ->orWhere('identification', 'ilike', "%{$search}%");
-            });
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->whereHas('customer', function ($q) use ($search) {
+                    $q->where('name', 'ilike', "%{$search}%")
+                      ->orWhere('identification', 'ilike', "%{$search}%");
+                });
+            }
+
+            $customerPoints = $query->orderByDesc('points_balance')->paginate(15);
+
+            $stats = [
+                'total_customers_with_points' => CustomerPoint::where('business_id', $businessId)->where('points_balance', '>', 0)->count(),
+                'total_points_issued' => PointTransaction::where('business_id', $businessId)->sum('points_earned'),
+                'total_points_redeemed' => PointTransaction::where('business_id', $businessId)->sum('points_used'),
+                'total_points_balance' => CustomerPoint::where('business_id', $businessId)->sum('points_balance'),
+            ];
+        } catch (\Exception $e) {
+            $customerPoints = collect();
+            $stats = ['total_customers_with_points' => 0, 'total_points_issued' => 0, 'total_points_redeemed' => 0, 'total_points_balance' => 0];
         }
-
-        $customerPoints = $query->orderByDesc('points_balance')->paginate(15);
-
-        $stats = [
-            'total_customers_with_points' => CustomerPoint::where('business_id', $businessId)->where('points_balance', '>', 0)->count(),
-            'total_points_issued' => PointTransaction::where('business_id', $businessId)->sum('points_earned'),
-            'total_points_redeemed' => PointTransaction::where('business_id', $businessId)->sum('points_used'),
-            'total_points_balance' => CustomerPoint::where('business_id', $businessId)->sum('points_balance'),
-        ];
 
         return view('admin.loyalty.index', compact('customerPoints', 'stats'));
     }

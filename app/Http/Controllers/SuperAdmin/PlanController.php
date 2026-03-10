@@ -12,7 +12,11 @@ class PlanController extends Controller
 {
     public function index()
     {
-        $plans = Plan::withCount('subscriptions')->get();
+        try {
+            $plans = Plan::withCount('subscriptions')->get();
+        } catch (\Exception $e) {
+            $plans = collect();
+        }
 
         return view('super-admin.plans.index', compact('plans'));
     }

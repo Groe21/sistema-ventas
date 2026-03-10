@@ -9,8 +9,12 @@ class PlanService
 {
     public function getPlan(Business $business): ?Plan
     {
-        $sub = $business->activeSubscription;
-        return $sub?->plan;
+        try {
+            $sub = $business->activeSubscription;
+            return $sub?->plan;
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     public function canAddUser(Business $business): bool
