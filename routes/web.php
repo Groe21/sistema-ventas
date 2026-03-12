@@ -14,6 +14,7 @@ use App\Http\Controllers\SuperAdmin\PlanController;
 use App\Http\Controllers\SuperAdmin\SubscriptionController;
 use App\Http\Controllers\LoyaltyController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\CustomerPortalController;
 
 /*
@@ -181,9 +182,10 @@ Route::middleware(['auth', 'business'])->group(function () {
             ->middleware('plan.feature:basic_reports')
             ->name('reports.index');
         
-        // Settings (placeholder)
-        Route::get('/settings', function () {
-            return view('admin.settings.index');
-        })->name('settings.index');
+        // Settings
+        Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
+        Route::put('/settings/business', [SettingController::class, 'updateBusiness'])->name('settings.business');
+        Route::put('/settings/mail', [SettingController::class, 'updateMail'])->name('settings.mail');
+        Route::post('/settings/mail/test', [SettingController::class, 'testMail'])->name('settings.mail.test');
     });
 });

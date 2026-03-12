@@ -12,7 +12,9 @@ use App\Models\CustomerPoint;
 use App\Models\PointTransaction;
 use App\Services\PlanService;
 use App\Mail\InvoiceMail;
+use App\Models\BusinessSetting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
@@ -229,7 +231,26 @@ class POSController extends Controller
             try {
                 $sale->load(['items', 'customer', 'business', 'user']);
                 if ($sale->customer->email) {
-                    Mail::to($sale->customer->email)->send(new InvoiceMail($sale));
+                    $mailSettings = BusinessSetting::getMany($businessId, ['mail_host', 'mail_port', 'mail_username', 'mail_password', 'mail_encryption', 'mail_from_name']);
+
+                    if (!empty($mailSettings['mail_username']) && !empty($mailSettings['mail_password'])) {
+                        $password = Crypt::decryptString($mailSettings['mail_password']);
+
+                        config([
+                            'mail.mailers.business' => [
+                                'transport' => 'smtp',
+                                'host' => $mailSettings['mail_host'],
+                                'port' => (int) $mailSettings['mail_port'],
+                                'username' => $mailSettings['mail_username'],
+                                'password' => $password,
+                                'encryption' => ($mailSettings['mail_encryption'] ?? 'tls') === 'none' ? null : $mailSettings['mail_encryption'],
+                            ],
+                            'mail.from.address' => $mailSettings['mail_username'],
+                            'mail.from.name' => $mailSettings['mail_from_name'] ?? $sale->business->name,
+                        ]);
+
+                        Mail::mailer('business')->to($sale->customer->email)->send(new InvoiceMail($sale));
+                    }
                 }
             } catch (\Exception $e) {
                 // No bloquear la venta si falla el envío de email
