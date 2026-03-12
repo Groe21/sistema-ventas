@@ -185,19 +185,18 @@ function changeQty(i, v) {
 
 function renderCart() {
     const tbody = document.getElementById('cartItems');
-    const empty = document.getElementById('emptyCart');
     const btn = document.getElementById('saveButton');
     const badge = document.getElementById('cartCount');
-    document.querySelectorAll('.cart-hidden-input').forEach(el => el.remove());
 
     if (cart.length === 0) {
-        empty.style.display = '';
+        tbody.innerHTML = '<tr id="emptyCart"><td colspan="4" class="text-center text-muted py-3">' +
+            '<i class="bi bi-cart-x fs-4"></i><p class="mb-0 small">Toca un producto para agregar</p></td></tr>';
         btn.disabled = true;
         badge.textContent = '0';
         updateTotals();
         return;
     }
-    empty.style.display = 'none';
+
     btn.disabled = false;
     let total = cart.reduce((s, i) => s + i.quantity, 0);
     badge.textContent = total;
@@ -207,8 +206,8 @@ function renderCart() {
         const sub = item.price * item.quantity;
         html += '<tr>' +
             '<td class="small">' + item.name +
-                '<input type="hidden" class="cart-hidden-input" name="items[' + i + '][product_id]" value="' + item.id + '">' +
-                '<input type="hidden" class="cart-hidden-input" name="items[' + i + '][quantity]" value="' + item.quantity + '">' +
+                '<input type="hidden" name="items[' + i + '][product_id]" value="' + item.id + '">' +
+                '<input type="hidden" name="items[' + i + '][quantity]" value="' + item.quantity + '">' +
                 '<br><small class="text-muted">$' + item.price.toFixed(2) + (item.hasIva ? ' +IVA' : '') + '</small>' +
             '</td>' +
             '<td class="text-center">' +
