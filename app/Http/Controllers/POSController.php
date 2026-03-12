@@ -227,34 +227,37 @@ class POSController extends Controller
 
             DB::commit();
 
-            // Enviar factura por email al cliente
-            try {
-                $sale->load(['items', 'customer', 'business', 'user']);
-                if ($sale->customer->email) {
-                    $mailSettings = BusinessSetting::getMany($businessId, ['mail_host', 'mail_port', 'mail_username', 'mail_password', 'mail_encryption', 'mail_from_name']);
+            // Enviar factura por email al cliente (después de la respuesta HTTP)
+            $saleId = $sale->id;
+            $bId = $businessId;
+            app()->terminating(function () use ($saleId, $bId) {
+                try {
+                    $sale = Sale::with(['items', 'customer', 'business', 'user'])->find($saleId);
+                    if (!$sale || !$sale->customer->email) return;
 
-                    if (!empty($mailSettings['mail_username']) && !empty($mailSettings['mail_password'])) {
-                        $password = Crypt::decryptString($mailSettings['mail_password']);
+                    $mailSettings = BusinessSetting::getMany($bId, ['mail_host', 'mail_port', 'mail_username', 'mail_password', 'mail_encryption', 'mail_from_name']);
+                    if (empty($mailSettings['mail_username']) || empty($mailSettings['mail_password'])) return;
 
-                        config([
-                            'mail.mailers.business' => [
-                                'transport' => 'smtp',
-                                'host' => $mailSettings['mail_host'],
-                                'port' => (int) $mailSettings['mail_port'],
-                                'username' => $mailSettings['mail_username'],
-                                'password' => $password,
-                                'encryption' => ($mailSettings['mail_encryption'] ?? 'tls') === 'none' ? null : $mailSettings['mail_encryption'],
-                            ],
-                            'mail.from.address' => $mailSettings['mail_username'],
-                            'mail.from.name' => $mailSettings['mail_from_name'] ?? $sale->business->name,
-                        ]);
+                    $password = Crypt::decryptString($mailSettings['mail_password']);
 
-                        Mail::mailer('business')->to($sale->customer->email)->send(new InvoiceMail($sale));
-                    }
+                    config([
+                        'mail.mailers.business' => [
+                            'transport' => 'smtp',
+                            'host' => $mailSettings['mail_host'],
+                            'port' => (int) $mailSettings['mail_port'],
+                            'username' => $mailSettings['mail_username'],
+                            'password' => $password,
+                            'encryption' => ($mailSettings['mail_encryption'] ?? 'tls') === 'none' ? null : $mailSettings['mail_encryption'],
+                        ],
+                        'mail.from.address' => $mailSettings['mail_username'],
+                        'mail.from.name' => $mailSettings['mail_from_name'] ?? $sale->business->name,
+                    ]);
+
+                    Mail::mailer('business')->to($sale->customer->email)->send(new InvoiceMail($sale));
+                } catch (\Exception $e) {
+                    // Silenciar errores de email
                 }
-            } catch (\Exception $e) {
-                // No bloquear la venta si falla el envío de email
-            }
+            });
 
             return redirect()->route('sales.show', $sale)->with('success', "Venta {$invoiceNumber} registrada por \${$total}");
 
