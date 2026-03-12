@@ -12,19 +12,48 @@
         </button>
     </div>
 
+    {{-- Estadísticas rápidas --}}
+    <div class="row mb-3">
+        <div class="col-4">
+            <div class="card stat-card" style="border-left-color: #3498db;">
+                <div class="card-body py-2 px-3">
+                    <div class="stat-label" style="font-size: .75rem;">Total Clientes</div>
+                    <div class="stat-value" style="font-size: 1.3rem;">{{ $stats['total'] }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card stat-card" style="border-left-color: #2ecc71;">
+                <div class="card-body py-2 px-3">
+                    <div class="stat-label" style="font-size: .75rem;">Activos</div>
+                    <div class="stat-value" style="font-size: 1.3rem;">{{ $stats['activos'] }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card stat-card" style="border-left-color: #9b59b6;">
+                <div class="card-body py-2 px-3">
+                    <div class="stat-label" style="font-size: .75rem;">Con Email</div>
+                    <div class="stat-value" style="font-size: 1.3rem;">{{ $stats['con_email'] }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Búsqueda --}}
     <div class="card mb-3">
         <div class="card-body py-2 px-3">
             <form method="GET" action="{{ route('customers.index') }}" class="row g-2 align-items-center">
                 <div class="col">
-                    <input type="text" name="search" class="form-control form-control-sm"
-                           placeholder="Buscar nombre, cédula, email, teléfono..."
-                           value="{{ request('search') }}">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search" class="form-control form-control-sm"
+                               placeholder="Buscar por cédula, nombre, email o teléfono..."
+                               value="{{ request('search') }}" autofocus>
+                    </div>
                 </div>
                 <div class="col-auto">
-                    <button type="submit" class="btn btn-secondary btn-sm">
-                        <i class="bi bi-search"></i>
-                    </button>
+                    <button type="submit" class="btn btn-primary btn-sm">Buscar</button>
                     @if(request('search'))
                     <a href="{{ route('customers.index') }}" class="btn btn-outline-secondary btn-sm">
                         <i class="bi bi-x-lg"></i>
@@ -44,7 +73,8 @@
                         <thead>
                             <tr>
                                 <th>Cliente</th>
-                                <th class="hide-mobile">Email</th>
+                                <th>Identificación</th>
+                                <th class="hide-mobile">Email <i class="bi bi-envelope-at text-muted" title="Para factura electrónica"></i></th>
                                 <th>Teléfono</th>
                                 <th class="hide-mobile hide-tablet">Ciudad</th>
                                 <th class="text-center">Estado</th>
@@ -56,21 +86,32 @@
                             <tr>
                                 <td>
                                     <strong>{{ $customer->name }}</strong>
-                                    <br>
-                                    <small class="text-muted">
-                                        <span class="badge bg-info" style="font-size:.65rem;">
-                                            {{ strtoupper(str_replace('_', ' ', $customer->identification_type)) }}
-                                        </span>
-                                        {{ $customer->identification ?? '' }}
-                                    </small>
                                     {{-- Info extra visible solo en móvil --}}
                                     <span class="d-block d-md-none">
+                                        <small class="text-muted">
+                                            <span class="badge bg-info" style="font-size:.6rem;">
+                                                {{ strtoupper(str_replace('_', ' ', $customer->identification_type)) }}
+                                            </span>
+                                            {{ $customer->identification ?? '' }}
+                                        </small>
                                         @if($customer->email)
-                                            <small class="text-muted"><i class="bi bi-envelope"></i> {{ $customer->email }}</small>
+                                            <br><small class="text-muted"><i class="bi bi-envelope"></i> {{ $customer->email }}</small>
                                         @endif
                                     </span>
                                 </td>
-                                <td class="hide-mobile">{{ $customer->email ?? '-' }}</td>
+                                <td>
+                                    <span class="badge bg-info" style="font-size:.65rem;">
+                                        {{ strtoupper(str_replace('_', ' ', $customer->identification_type)) }}
+                                    </span>
+                                    <strong>{{ $customer->identification ?? '—' }}</strong>
+                                </td>
+                                <td class="hide-mobile">
+                                    @if($customer->email)
+                                        <i class="bi bi-envelope-check text-success"></i> {{ $customer->email }}
+                                    @else
+                                        <span class="text-muted"><i class="bi bi-envelope-x text-danger"></i> Sin email</span>
+                                    @endif
+                                </td>
                                 <td>{{ $customer->phone ?? '-' }}</td>
                                 <td class="hide-mobile hide-tablet">{{ $customer->city ?? '-' }}</td>
                                 <td class="text-center">
@@ -138,9 +179,13 @@
                                                                value="{{ $customer->phone }}">
                                                     </div>
                                                     <div class="col-12">
-                                                        <label class="form-label small">Email</label>
+                                                        <label class="form-label small">
+                                                            <i class="bi bi-envelope-at text-primary"></i> Email
+                                                            <small class="text-muted">(para factura electrónica)</small>
+                                                        </label>
                                                         <input type="email" name="email" class="form-control form-control-sm"
-                                                               value="{{ $customer->email }}">
+                                                               value="{{ $customer->email }}"
+                                                               placeholder="cliente@ejemplo.com — la factura se envía a este correo">
                                                     </div>
                                                     <div class="col-12">
                                                         <label class="form-label small">Dirección</label>
@@ -219,24 +264,29 @@
                         </div>
                         <div class="col-12 col-sm-6">
                             <label class="form-label small">Tipo de Identificación *</label>
-                            <select name="identification_type" class="form-select form-select-sm" required>
+                            <select name="identification_type" class="form-select form-select-sm" required id="createIdType">
                                 <option value="consumidor_final">Consumidor Final</option>
                                 <option value="cedula">Cédula</option>
                                 <option value="ruc">RUC</option>
                                 <option value="pasaporte">Pasaporte</option>
                             </select>
                         </div>
-                        <div class="col-12 col-sm-6">
-                            <label class="form-label small">N° Identificación</label>
-                            <input type="text" name="identification" class="form-control form-control-sm" maxlength="13">
+                        <div class="col-12 col-sm-6" id="createIdField">
+                            <label class="form-label small">N° Identificación <span id="createIdRequired" style="display:none" class="text-danger">*</span></label>
+                            <input type="text" name="identification" class="form-control form-control-sm" maxlength="13" id="createIdInput"
+                                   placeholder="Ingrese cédula, RUC o pasaporte">
                         </div>
                         <div class="col-12 col-sm-6">
                             <label class="form-label small">Teléfono</label>
                             <input type="text" name="phone" class="form-control form-control-sm">
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Email</label>
-                            <input type="email" name="email" class="form-control form-control-sm">
+                            <label class="form-label small">
+                                <i class="bi bi-envelope-at text-primary"></i> Email
+                                <small class="text-muted">(para factura electrónica)</small>
+                            </label>
+                            <input type="email" name="email" class="form-control form-control-sm"
+                                   placeholder="cliente@ejemplo.com — la factura se envía a este correo">
                         </div>
                         <div class="col-12">
                             <label class="form-label small">Dirección</label>
@@ -275,3 +325,35 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle identificación requerida en modal crear
+    const createIdType = document.getElementById('createIdType');
+    const createIdInput = document.getElementById('createIdInput');
+    const createIdRequired = document.getElementById('createIdRequired');
+
+    if (createIdType) {
+        createIdType.addEventListener('change', function() {
+            const required = this.value !== 'consumidor_final';
+            createIdInput.required = required;
+            createIdRequired.style.display = required ? '' : 'none';
+            if (this.value === 'cedula') {
+                createIdInput.placeholder = 'Ej: 1712345678';
+                createIdInput.maxLength = 10;
+            } else if (this.value === 'ruc') {
+                createIdInput.placeholder = 'Ej: 1712345678001';
+                createIdInput.maxLength = 13;
+            } else if (this.value === 'pasaporte') {
+                createIdInput.placeholder = 'Número de pasaporte';
+                createIdInput.maxLength = 13;
+            } else {
+                createIdInput.placeholder = 'Opcional para consumidor final';
+                createIdInput.maxLength = 13;
+            }
+        });
+    }
+});
+</script>
+@endpush
