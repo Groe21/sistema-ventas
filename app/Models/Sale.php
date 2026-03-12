@@ -33,6 +33,8 @@ class Sale extends Model
         'payment_status',
         'status',
         'notes',
+        'amount_received',
+        'change_amount',
         'sri_authorization',
         'access_key',
     ];
@@ -49,6 +51,8 @@ class Sale extends Model
         'ice_amount' => 'decimal:2',
         'discount' => 'decimal:2',
         'total' => 'decimal:2',
+        'amount_received' => 'decimal:2',
+        'change_amount' => 'decimal:2',
     ];
 
     /**

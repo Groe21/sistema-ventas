@@ -11,8 +11,10 @@ use App\Models\CashMovement;
 use App\Models\CustomerPoint;
 use App\Models\PointTransaction;
 use App\Services\PlanService;
+use App\Mail\InvoiceMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class POSController extends Controller
 {
@@ -69,6 +71,8 @@ class POSController extends Controller
             'discount' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:500',
             'redeem_points' => 'nullable|integer|min:0',
+            'amount_received' => 'nullable|numeric|min:0',
+            'change_amount' => 'nullable|numeric|min:0',
         ]);
 
 
@@ -128,6 +132,8 @@ class POSController extends Controller
                 'iva_amount' => $ivaAmount,
                 'discount' => $discount,
                 'total' => $total,
+                'amount_received' => $validated['amount_received'] ?? null,
+                'change_amount' => $validated['change_amount'] ?? null,
                 'payment_method' => $validated['payment_method'],
                 'payment_status' => $validated['payment_method'] === 'credit' ? 'pending' : 'paid',
                 'status' => 'completed',
@@ -218,6 +224,16 @@ class POSController extends Controller
             }
 
             DB::commit();
+
+            // Enviar factura por email al cliente
+            try {
+                $sale->load(['items', 'customer', 'business', 'user']);
+                if ($sale->customer->email) {
+                    Mail::to($sale->customer->email)->send(new InvoiceMail($sale));
+                }
+            } catch (\Exception $e) {
+                // No bloquear la venta si falla el envío de email
+            }
 
             return redirect()->route('sales.show', $sale)->with('success', "Venta {$invoiceNumber} registrada por \${$total}");
 

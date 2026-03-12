@@ -113,6 +113,16 @@
                             <td colspan="5" class="text-end"><h6 class="mb-0">TOTAL:</h6></td>
                             <td class="text-end"><h6 class="mb-0">${{ number_format($sale->total, 2) }}</h6></td>
                         </tr>
+                        @if($sale->amount_received && $sale->payment_method === 'cash')
+                        <tr>
+                            <td colspan="5" class="text-end"><strong>Recibido:</strong></td>
+                            <td class="text-end">${{ number_format($sale->amount_received, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="5" class="text-end"><strong>Vuelto:</strong></td>
+                            <td class="text-end fw-bold text-primary">${{ number_format($sale->change_amount, 2) }}</td>
+                        </tr>
+                        @endif
                     </tfoot>
                 </table>
             </div>
