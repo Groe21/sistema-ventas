@@ -389,14 +389,18 @@ class SuperAdminController extends Controller
             ->get();
 
         // Negocios con más ventas (ranking)
-        $rankingNegocios = Business::select('businesses.id', 'businesses.name', 'businesses.plan')
-            ->withCount(['sales as ventas_count' => function ($q) use ($startDate, $endDate) {
-                $q->where('status', 'completed')->whereBetween('sale_date', [$startDate, $endDate]);
-            }])
-            ->withSum(['sales as ventas_total' => function ($q) use ($startDate, $endDate) {
-                $q->where('status', 'completed')->whereBetween('sale_date', [$startDate, $endDate]);
-            }], 'total')
-            ->having('ventas_count', '>', 0)
+        $rankingNegocios = Sale::select(
+                'businesses.id',
+                'businesses.name',
+                'businesses.plan',
+                DB::raw('COUNT(sales.id) as ventas_count'),
+                DB::raw('SUM(sales.total) as ventas_total')
+            )
+            ->join('businesses', 'sales.business_id', '=', 'businesses.id')
+            ->where('sales.status', 'completed')
+            ->whereBetween('sales.sale_date', [$startDate, $endDate])
+            ->whereNull('sales.deleted_at')
+            ->groupBy('businesses.id', 'businesses.name', 'businesses.plan')
             ->orderByDesc('ventas_total')
             ->limit(10)
             ->get();
