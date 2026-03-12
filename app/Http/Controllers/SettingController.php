@@ -44,26 +44,23 @@ class SettingController extends Controller
         $business = auth()->user()->business;
 
         $validated = $request->validate([
-            'mail_host' => 'required|string|max:255',
-            'mail_port' => 'required|integer|min:1|max:65535',
             'mail_username' => 'required|email|max:255',
             'mail_password' => 'nullable|string|max:255',
-            'mail_encryption' => 'required|in:tls,ssl,none',
             'mail_from_name' => 'nullable|string|max:255',
         ]);
 
-        BusinessSetting::setValue($business->id, 'mail_host', $validated['mail_host']);
-        BusinessSetting::setValue($business->id, 'mail_port', (string) $validated['mail_port']);
+        // Gmail SMTP hardcoded
+        BusinessSetting::setValue($business->id, 'mail_host', 'smtp.gmail.com');
+        BusinessSetting::setValue($business->id, 'mail_port', '587');
         BusinessSetting::setValue($business->id, 'mail_username', $validated['mail_username']);
-        BusinessSetting::setValue($business->id, 'mail_encryption', $validated['mail_encryption']);
+        BusinessSetting::setValue($business->id, 'mail_encryption', 'tls');
         BusinessSetting::setValue($business->id, 'mail_from_name', $validated['mail_from_name'] ?? $business->name);
 
-        // Solo actualizar password si se proporcionó uno nuevo
         if (!empty($validated['mail_password'])) {
             BusinessSetting::setValue($business->id, 'mail_password', Crypt::encryptString($validated['mail_password']));
         }
 
-        return back()->with('success', 'Configuración de correo guardada correctamente.');
+        return back()->with('success', 'Correo Gmail configurado correctamente.');
     }
 
     public function testMail(Request $request)
