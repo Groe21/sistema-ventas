@@ -1,5 +1,10 @@
 #!/bin/bash
 
+echo "==> Setting production session config..."
+export SESSION_DRIVER=database
+export SESSION_SECURE_COOKIE=true
+export SESSION_SAME_SITE=lax
+
 echo "==> Creating storage directories..."
 mkdir -p storage/framework/{cache/data,sessions,views} storage/logs bootstrap/cache
 chmod -R 777 storage bootstrap/cache

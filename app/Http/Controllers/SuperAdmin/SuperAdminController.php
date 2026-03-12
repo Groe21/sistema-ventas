@@ -10,6 +10,7 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class SuperAdminController extends Controller
@@ -303,5 +304,116 @@ class SuperAdminController extends Controller
         $user->delete();
 
         return redirect()->route('super-admin.users.index')->with('success', 'Usuario eliminado.');
+    }
+
+    /**
+     * Display global reports.
+     */
+    public function reports(Request $request)
+    {
+        $period = $request->get('period', '30'); // días
+        $startDate = now()->subDays((int) $period)->startOfDay();
+        $endDate = now()->endOfDay();
+
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $startDate = \Carbon\Carbon::parse($request->start_date)->startOfDay();
+            $endDate = \Carbon\Carbon::parse($request->end_date)->endOfDay();
+        }
+
+        // Estadísticas generales del período
+        $salesQuery = Sale::where('status', 'completed')
+            ->whereBetween('sale_date', [$startDate, $endDate]);
+
+        $stats = [
+            'total_ventas' => (clone $salesQuery)->sum('total'),
+            'num_ventas' => (clone $salesQuery)->count(),
+            'ticket_promedio' => (clone $salesQuery)->count() > 0
+                ? (clone $salesQuery)->sum('total') / (clone $salesQuery)->count()
+                : 0,
+            'total_iva' => (clone $salesQuery)->sum('iva_amount'),
+            'total_descuentos' => (clone $salesQuery)->sum('discount'),
+        ];
+
+        // Ventas por negocio
+        $ventasPorNegocio = Sale::select(
+                'businesses.name as business_name',
+                DB::raw('COUNT(sales.id) as num_ventas'),
+                DB::raw('SUM(sales.total) as total_ventas'),
+                DB::raw('AVG(sales.total) as ticket_promedio')
+            )
+            ->join('businesses', 'sales.business_id', '=', 'businesses.id')
+            ->where('sales.status', 'completed')
+            ->whereBetween('sales.sale_date', [$startDate, $endDate])
+            ->groupBy('businesses.name')
+            ->orderByDesc('total_ventas')
+            ->get();
+
+        // Ventas por método de pago
+        $ventasPorMetodo = Sale::select(
+                'payment_method',
+                DB::raw('COUNT(*) as cantidad'),
+                DB::raw('SUM(total) as total')
+            )
+            ->where('status', 'completed')
+            ->whereBetween('sale_date', [$startDate, $endDate])
+            ->groupBy('payment_method')
+            ->orderByDesc('total')
+            ->get();
+
+        // Ventas diarias para gráfico
+        $ventasDiarias = Sale::select(
+                DB::raw("TO_CHAR(sale_date, 'YYYY-MM-DD') as fecha"),
+                DB::raw('COUNT(*) as cantidad'),
+                DB::raw('SUM(total) as total')
+            )
+            ->where('status', 'completed')
+            ->whereBetween('sale_date', [$startDate, $endDate])
+            ->groupBy(DB::raw("TO_CHAR(sale_date, 'YYYY-MM-DD')"))
+            ->orderBy('fecha')
+            ->get();
+
+        // Top 10 productos más vendidos (global)
+        $topProductos = DB::table('sale_items')
+            ->select(
+                'sale_items.product_name',
+                DB::raw('SUM(sale_items.quantity) as total_cantidad'),
+                DB::raw('SUM(sale_items.total) as total_ingresos')
+            )
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->where('sales.status', 'completed')
+            ->whereBetween('sales.sale_date', [$startDate, $endDate])
+            ->whereNull('sales.deleted_at')
+            ->groupBy('sale_items.product_name')
+            ->orderByDesc('total_cantidad')
+            ->limit(10)
+            ->get();
+
+        // Negocios con más ventas (ranking)
+        $rankingNegocios = Business::select('businesses.id', 'businesses.name', 'businesses.plan')
+            ->withCount(['sales as ventas_count' => function ($q) use ($startDate, $endDate) {
+                $q->where('status', 'completed')->whereBetween('sale_date', [$startDate, $endDate]);
+            }])
+            ->withSum(['sales as ventas_total' => function ($q) use ($startDate, $endDate) {
+                $q->where('status', 'completed')->whereBetween('sale_date', [$startDate, $endDate]);
+            }], 'total')
+            ->having('ventas_count', '>', 0)
+            ->orderByDesc('ventas_total')
+            ->limit(10)
+            ->get();
+
+        // Resumen de suscripciones activas por plan
+        $suscripcionesPorPlan = DB::table('subscriptions')
+            ->select('plans.name as plan_name', DB::raw('COUNT(*) as cantidad'))
+            ->join('plans', 'subscriptions.plan_id', '=', 'plans.id')
+            ->where('subscriptions.status', 'active')
+            ->groupBy('plans.name')
+            ->orderByDesc('cantidad')
+            ->get();
+
+        return view('super-admin.reports.index', compact(
+            'stats', 'ventasPorNegocio', 'ventasPorMetodo', 'ventasDiarias',
+            'topProductos', 'rankingNegocios', 'suscripcionesPorPlan',
+            'startDate', 'endDate', 'period'
+        ));
     }
 }

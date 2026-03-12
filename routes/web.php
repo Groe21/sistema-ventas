@@ -123,10 +123,8 @@ Route::middleware(['auth', 'super-admin'])->prefix('super-admin')->name('super-a
     Route::put('/plans/{plan}', [PlanController::class, 'update'])->name('plans.update');
     Route::delete('/plans/{plan}', [PlanController::class, 'destroy'])->name('plans.destroy');
     
-    // Reports (placeholder)
-    Route::get('/reports', function () {
-        return view('super-admin.reports.index');
-    })->name('reports.index');
+    // Reports
+    Route::get('/reports', [SuperAdminController::class, 'reports'])->name('reports.index');
     
     // Settings (placeholder)
     Route::get('/settings', function () {
