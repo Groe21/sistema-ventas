@@ -13,6 +13,7 @@ use App\Http\Controllers\SuperAdmin\SuperAdminController;
 use App\Http\Controllers\SuperAdmin\PlanController;
 use App\Http\Controllers\SuperAdmin\SubscriptionController;
 use App\Http\Controllers\LoyaltyController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\CustomerPortalController;
 
 /*
@@ -175,10 +176,10 @@ Route::middleware(['auth', 'business'])->group(function () {
         Route::get('/loyalty/{customer}/history', [LoyaltyController::class, 'history'])->name('loyalty.history');
         Route::post('/loyalty/{customer}/adjust', [LoyaltyController::class, 'adjustPoints'])->name('loyalty.adjust');
         
-        // Reports (placeholder)
-        Route::get('/reports', function () {
-            return view('admin.reports.index');
-        })->name('reports.index');
+        // Reports
+        Route::get('/reports', [ReportController::class, 'index'])
+            ->middleware('plan.feature:basic_reports')
+            ->name('reports.index');
         
         // Settings (placeholder)
         Route::get('/settings', function () {
