@@ -299,12 +299,57 @@
                 @csrf
                 <div class="modal-body">
                     <div class="alert alert-info py-2 mb-3">
-                        <strong>Monto Esperado:</strong> ${{ number_format($openRegister->calculateExpectedAmount(), 2) }}
+                        <div><strong>Efectivo Esperado:</strong> ${{ number_format($openRegister->calculateExpectedAmount(), 2) }}</div>
+                        @if(!empty($expectedByMethod))
+                        <div class="small mt-1">
+                            <span class="me-2">Tarjeta esperada: <strong>${{ number_format($expectedByMethod['card'], 2) }}</strong></span>
+                            <span>Transferencia esperada: <strong>${{ number_format($expectedByMethod['transfer'], 2) }}</strong></span>
+                        </div>
+                        @endif
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Monto Real en Caja *</label>
-                        <input type="number" name="actual_amount" class="form-control"
-                               step="0.01" min="0" required autofocus>
+
+                    <h6 class="mb-2"><i class="bi bi-calculator"></i> Conteo de Efectivo</h6>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-bordered align-middle mb-0" id="denominationTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Denominación</th>
+                                    <th style="width: 110px;">Cantidad</th>
+                                    <th class="text-end" style="width: 120px;">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Moneda $0.01</td><td><input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[coin_001]" data-value="0.01" value="0"></td><td class="text-end denomination-subtotal">$0.00</td></tr>
+                                <tr><td>Moneda $0.05</td><td><input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[coin_005]" data-value="0.05" value="0"></td><td class="text-end denomination-subtotal">$0.00</td></tr>
+                                <tr><td>Moneda $0.10</td><td><input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[coin_010]" data-value="0.10" value="0"></td><td class="text-end denomination-subtotal">$0.00</td></tr>
+                                <tr><td>Moneda $0.25</td><td><input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[coin_025]" data-value="0.25" value="0"></td><td class="text-end denomination-subtotal">$0.00</td></tr>
+                                <tr><td>Moneda $0.50</td><td><input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[coin_050]" data-value="0.50" value="0"></td><td class="text-end denomination-subtotal">$0.00</td></tr>
+                                <tr><td>Moneda $1.00</td><td><input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[coin_100]" data-value="1.00" value="0"></td><td class="text-end denomination-subtotal">$0.00</td></tr>
+                                <tr><td>Billete $1</td><td><input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[bill_1]" data-value="1.00" value="0"></td><td class="text-end denomination-subtotal">$0.00</td></tr>
+                                <tr><td>Billete $5</td><td><input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[bill_5]" data-value="5.00" value="0"></td><td class="text-end denomination-subtotal">$0.00</td></tr>
+                                <tr><td>Billete $10</td><td><input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[bill_10]" data-value="10.00" value="0"></td><td class="text-end denomination-subtotal">$0.00</td></tr>
+                                <tr><td>Billete $20</td><td><input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[bill_20]" data-value="20.00" value="0"></td><td class="text-end denomination-subtotal">$0.00</td></tr>
+                                <tr><td>Billete $50</td><td><input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[bill_50]" data-value="50.00" value="0"></td><td class="text-end denomination-subtotal">$0.00</td></tr>
+                                <tr><td>Billete $100</td><td><input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[bill_100]" data-value="100.00" value="0"></td><td class="text-end denomination-subtotal">$0.00</td></tr>
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <th colspan="2" class="text-end">Total Efectivo Contado:</th>
+                                    <th class="text-end" id="cashCountTotal">$0.00</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small">Total Tarjeta (contado)</label>
+                            <input type="number" name="counted_card_amount" class="form-control form-control-sm" step="0.01" min="0" value="0">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Total Transferencia (contado)</label>
+                            <input type="number" name="counted_transfer_amount" class="form-control form-control-sm" step="0.01" min="0" value="0">
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small">Notas de Cierre</label>
@@ -326,4 +371,40 @@
     </div>
 </div>
 @endif
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const inputs = document.querySelectorAll('.denomination-input');
+    if (!inputs.length) return;
+
+    const totalEl = document.getElementById('cashCountTotal');
+
+    function recalcCashTotal() {
+        let total = 0;
+        inputs.forEach((input) => {
+            const qty = parseInt(input.value || '0', 10) || 0;
+            const value = parseFloat(input.dataset.value || '0');
+            const subtotal = qty * value;
+            total += subtotal;
+
+            const subtotalCell = input.closest('tr')?.querySelector('.denomination-subtotal');
+            if (subtotalCell) {
+                subtotalCell.textContent = '$' + subtotal.toFixed(2);
+            }
+        });
+
+        if (totalEl) {
+            totalEl.textContent = '$' + total.toFixed(2);
+        }
+    }
+
+    inputs.forEach((input) => {
+        input.addEventListener('input', recalcCashTotal);
+    });
+
+    recalcCashTotal();
+});
+</script>
+@endpush
 @endsection

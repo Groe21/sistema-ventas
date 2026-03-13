@@ -21,6 +21,11 @@ class CashController extends Controller
             ->with('cashMovements')
             ->first();
 
+        $expectedByMethod = null;
+        if ($openRegister) {
+            $expectedByMethod = $openRegister->calculateExpectedByMethod();
+        }
+
         // Get recent closed registers
         $closedRegisters = CashRegister::where('business_id', $businessId)
             ->where('status', 'closed')
@@ -28,7 +33,7 @@ class CashController extends Controller
             ->take(10)
             ->get();
 
-        return view('admin.cash.index', compact('openRegister', 'closedRegisters'));
+        return view('admin.cash.index', compact('openRegister', 'closedRegisters', 'expectedByMethod'));
     }
 
     /**
@@ -84,7 +89,10 @@ class CashController extends Controller
     public function close(Request $request, CashRegister $cashRegister)
     {
         $validated = $request->validate([
-            'actual_amount' => 'required|numeric|min:0',
+            'denominations' => 'required|array',
+            'denominations.*' => 'nullable|integer|min:0',
+            'counted_card_amount' => 'nullable|numeric|min:0',
+            'counted_transfer_amount' => 'nullable|numeric|min:0',
             'closing_notes' => 'nullable|string',
         ]);
 
@@ -97,14 +105,46 @@ class CashController extends Controller
             return back()->with('error', 'Esta caja ya está cerrada.');
         }
 
+        $denominationValues = [
+            'coin_001' => 0.01,
+            'coin_005' => 0.05,
+            'coin_010' => 0.10,
+            'coin_025' => 0.25,
+            'coin_050' => 0.50,
+            'coin_100' => 1.00,
+            'bill_1' => 1.00,
+            'bill_5' => 5.00,
+            'bill_10' => 10.00,
+            'bill_20' => 20.00,
+            'bill_50' => 50.00,
+            'bill_100' => 100.00,
+        ];
+
+        $breakdown = [];
+        $actualAmount = 0;
+        foreach ($denominationValues as $key => $value) {
+            $qty = (int) ($validated['denominations'][$key] ?? 0);
+            $subtotal = round($qty * $value, 2);
+            $breakdown[$key] = [
+                'qty' => $qty,
+                'value' => $value,
+                'subtotal' => $subtotal,
+            ];
+            $actualAmount += $subtotal;
+        }
+
+        $actualAmount = round($actualAmount, 2);
         $expectedAmount = $cashRegister->calculateExpectedAmount();
-        $difference = $validated['actual_amount'] - $expectedAmount;
+        $difference = round($actualAmount - $expectedAmount, 2);
 
         $cashRegister->update([
             'closed_at' => now(),
             'expected_amount' => $expectedAmount,
-            'actual_amount' => $validated['actual_amount'],
+            'actual_amount' => $actualAmount,
+            'counted_card_amount' => $validated['counted_card_amount'] ?? 0,
+            'counted_transfer_amount' => $validated['counted_transfer_amount'] ?? 0,
             'difference' => $difference,
+            'cash_breakdown' => $breakdown,
             'closing_notes' => $validated['closing_notes'],
             'status' => 'closed',
         ]);
@@ -116,7 +156,7 @@ class CashController extends Controller
             'user_id' => auth()->id(),
             'type' => 'closing',
             'category' => 'closing_balance',
-            'amount' => $validated['actual_amount'],
+            'amount' => $actualAmount,
             'description' => 'Cierre de caja - Diferencia: $' . number_format($difference, 2),
             'payment_method' => 'cash',
         ]);

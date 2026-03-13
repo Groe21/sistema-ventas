@@ -91,7 +91,7 @@
                             <tr style="cursor:pointer" onclick="window.location='{{ route('sales.show', $sale) }}'">
                                 <td>
                                     <code>{{ $sale->invoice_number }}</code>
-                                    <span class="d-md-none d-block"><small class="text-muted">{{ $sale->sale_date->format('d/m/y') }}</small></span>
+                                    <span class="d-md-none d-block"><small class="text-muted">{{ $sale->sale_date->format('d/m/y H:i') }}</small></span>
                                 </td>
                                 <td class="hide-mobile"><small>{{ $sale->sale_date->format('d/m/Y H:i') }}</small></td>
                                 <td class="hide-tablet">{{ Str::limit($sale->customer->name ?? '-', 20) }}</td>

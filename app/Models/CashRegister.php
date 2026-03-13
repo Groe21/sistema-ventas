@@ -25,7 +25,10 @@ class CashRegister extends Model
         'opening_amount',
         'expected_amount',
         'actual_amount',
+        'counted_card_amount',
+        'counted_transfer_amount',
         'difference',
+        'cash_breakdown',
         'status',
         'opening_notes',
         'closing_notes',
@@ -42,7 +45,10 @@ class CashRegister extends Model
         'opening_amount' => 'decimal:2',
         'expected_amount' => 'decimal:2',
         'actual_amount' => 'decimal:2',
+        'counted_card_amount' => 'decimal:2',
+        'counted_transfer_amount' => 'decimal:2',
         'difference' => 'decimal:2',
+        'cash_breakdown' => 'array',
     ];
 
     /**
@@ -96,21 +102,25 @@ class CashRegister extends Model
     /**
      * Calculate total income.
      */
-    public function getTotalIncome(): float
+    public function getTotalIncome(?string $paymentMethod = null): float
     {
-        return $this->cashMovements()
-            ->where('type', 'income')
-            ->sum('amount');
+        $query = $this->cashMovements()->where('type', 'income');
+        if ($paymentMethod) {
+            $query->where('payment_method', $paymentMethod);
+        }
+        return (float) $query->sum('amount');
     }
 
     /**
      * Calculate total expenses.
      */
-    public function getTotalExpenses(): float
+    public function getTotalExpenses(?string $paymentMethod = null): float
     {
-        return $this->cashMovements()
-            ->where('type', 'expense')
-            ->sum('amount');
+        $query = $this->cashMovements()->where('type', 'expense');
+        if ($paymentMethod) {
+            $query->where('payment_method', $paymentMethod);
+        }
+        return (float) $query->sum('amount');
     }
 
     /**
@@ -118,6 +128,21 @@ class CashRegister extends Model
      */
     public function calculateExpectedAmount(): float
     {
-        return $this->opening_amount + $this->getTotalIncome() - $this->getTotalExpenses();
+        // El cierre de caja se cuadra contra efectivo fisico.
+        return (float) $this->opening_amount + $this->getTotalIncome('cash') - $this->getTotalExpenses('cash');
+    }
+
+    public function calculateExpectedByMethod(): array
+    {
+        $cash = $this->calculateExpectedAmount();
+        $card = $this->getTotalIncome('card') - $this->getTotalExpenses('card');
+        $transfer = $this->getTotalIncome('transfer') - $this->getTotalExpenses('transfer');
+
+        return [
+            'cash' => round((float) $cash, 2),
+            'card' => round((float) $card, 2),
+            'transfer' => round((float) $transfer, 2),
+            'total' => round((float) ($cash + $card + $transfer), 2),
+        ];
     }
 }

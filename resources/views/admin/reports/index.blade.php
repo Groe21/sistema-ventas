@@ -1,6 +1,27 @@
 @extends('layouts.app')
 @section('title', 'Reportes')
 
+@push('styles')
+<style>
+.chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 320px;
+}
+
+.chart-wrap.chart-wrap-sm {
+    height: 260px;
+}
+
+@media (max-width: 992px) {
+    .chart-wrap,
+    .chart-wrap.chart-wrap-sm {
+        height: 260px;
+    }
+}
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid">
     <!-- Header -->
@@ -126,7 +147,9 @@
             <div class="card h-100">
                 <div class="card-header"><i class="bi bi-bar-chart"></i> Ventas Diarias</div>
                 <div class="card-body">
-                    <canvas id="ventasDiariasChart" height="280"></canvas>
+                    <div class="chart-wrap">
+                        <canvas id="ventasDiariasChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -135,7 +158,9 @@
                 <div class="card-header"><i class="bi bi-pie-chart"></i> Métodos de Pago</div>
                 <div class="card-body d-flex align-items-center justify-content-center">
                     @if($ventasPorMetodo->count() > 0)
-                        <canvas id="metodosPagoChart" height="250"></canvas>
+                        <div class="chart-wrap chart-wrap-sm">
+                            <canvas id="metodosPagoChart"></canvas>
+                        </div>
                     @else
                         <p class="text-muted">Sin datos en este período</p>
                     @endif
@@ -310,7 +335,9 @@
                 <div class="card-header"><i class="bi bi-clock"></i> Ventas por Hora del Día</div>
                 <div class="card-body">
                     @if($ventasPorHora->count() > 0)
-                        <canvas id="ventasPorHoraChart" height="250"></canvas>
+                        <div class="chart-wrap chart-wrap-sm">
+                            <canvas id="ventasPorHoraChart"></canvas>
+                        </div>
                     @else
                         <div class="text-center py-4 text-muted"><p>Sin datos</p></div>
                     @endif

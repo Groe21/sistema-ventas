@@ -32,7 +32,7 @@
                     <h5 class="text-primary">{{ $sale->invoice_number }}</h5>
                     <small>
                         <strong>Fecha:</strong> {{ $sale->sale_date->format('d/m/Y H:i') }}<br>
-                        <strong>Vendedor:</strong> {{ $sale->user->name }}
+                        <strong>Vendedor:</strong> {{ $sale->user->name ?? 'Usuario no disponible' }}
                     </small>
                 </div>
             </div>
@@ -43,11 +43,11 @@
             <div class="row mb-3">
                 <div class="col-sm-6 mb-2">
                     <h6 class="text-muted text-uppercase small">Cliente</h6>
-                    <strong>{{ $sale->customer->name }}</strong><br>
-                    @if($sale->customer->identification)
+                    <strong>{{ $sale->customer->name ?? 'Consumidor Final' }}</strong><br>
+                    @if($sale->customer && $sale->customer->identification)
                         <small>{{ strtoupper(str_replace('_', ' ', $sale->customer->identification_type)) }}: {{ $sale->customer->identification }}</small><br>
                     @endif
-                    @if($sale->customer->phone)<small>Tel: {{ $sale->customer->phone }}</small>@endif
+                    @if($sale->customer && $sale->customer->phone)<small>Tel: {{ $sale->customer->phone }}</small>@endif
                 </div>
                 <div class="col-sm-6 text-sm-end">
                     <h6 class="text-muted text-uppercase small">Pago</h6>

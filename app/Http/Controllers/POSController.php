@@ -65,7 +65,7 @@ class POSController extends Controller
         }
 
         $validated = $request->validate([
-            'customer_id' => 'required|exists:customers,id',
+            'customer_id' => 'nullable|exists:customers,id',
             'payment_method' => 'required|in:' . implode(',', $allowedMethods),
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
@@ -123,10 +123,31 @@ class POSController extends Controller
                 ->where('status', 'open')
                 ->first();
 
+            $customerId = $validated['customer_id'] ?? null;
+            $selectedCustomer = null;
+
+            if ($customerId) {
+                $selectedCustomer = Customer::where('id', $customerId)
+                    ->where('business_id', $businessId)
+                    ->where('is_active', true)
+                    ->firstOrFail();
+            } else {
+                $selectedCustomer = Customer::firstOrCreate(
+                    [
+                        'business_id' => $businessId,
+                        'identification_type' => 'consumidor_final',
+                        'name' => 'Consumidor Final',
+                    ],
+                    [
+                        'is_active' => true,
+                    ]
+                );
+            }
+
             $sale = Sale::create([
                 'business_id' => $businessId,
                 'user_id' => auth()->id(),
-                'customer_id' => $validated['customer_id'],
+                'customer_id' => $selectedCustomer->id,
                 'cash_register_id' => $cashRegister?->id,
                 'invoice_number' => $invoiceNumber,
                 'sale_date' => now(),
@@ -181,18 +202,18 @@ class POSController extends Controller
             try {
                 $planService = app(PlanService::class);
                 $business = auth()->user()->business;
-                if ($planService->hasFeature($business, 'loyalty_points') && $total > 0) {
+                if ($planService->hasFeature($business, 'loyalty_points') && $total > 0 && $selectedCustomer->identification_type !== 'consumidor_final') {
                     $pointsEarned = $planService->calculatePoints($total);
                     if ($pointsEarned > 0) {
                         $pointRecord = CustomerPoint::firstOrCreate(
-                            ['business_id' => $businessId, 'customer_id' => $validated['customer_id']],
+                            ['business_id' => $businessId, 'customer_id' => $selectedCustomer->id],
                             ['points_balance' => 0]
                         );
                         $pointRecord->increment('points_balance', $pointsEarned);
 
                         PointTransaction::create([
                             'business_id' => $businessId,
-                            'customer_id' => $validated['customer_id'],
+                            'customer_id' => $selectedCustomer->id,
                             'sale_id' => $sale->id,
                             'points_earned' => $pointsEarned,
                             'points_used' => 0,
@@ -203,9 +224,9 @@ class POSController extends Controller
 
                 // Redeem points if requested
                 $redeemPoints = (int) ($request->input('redeem_points', 0));
-                if ($redeemPoints > 0 && $planService->hasFeature($business, 'loyalty_points')) {
+                if ($redeemPoints > 0 && $planService->hasFeature($business, 'loyalty_points') && $selectedCustomer->identification_type !== 'consumidor_final') {
                     $pointRecord = CustomerPoint::where('business_id', $businessId)
-                        ->where('customer_id', $validated['customer_id'])
+                        ->where('customer_id', $selectedCustomer->id)
                         ->first();
 
                     if ($pointRecord && $pointRecord->points_balance >= $redeemPoints) {
@@ -213,7 +234,7 @@ class POSController extends Controller
 
                         PointTransaction::create([
                             'business_id' => $businessId,
-                            'customer_id' => $validated['customer_id'],
+                            'customer_id' => $selectedCustomer->id,
                             'sale_id' => $sale->id,
                             'points_earned' => 0,
                             'points_used' => $redeemPoints,

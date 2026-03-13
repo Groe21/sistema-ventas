@@ -31,8 +31,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>{{ $sale->business->name ?? 'Sistema Comercial Pro' }}</h1>
-            <p>Comprobante de Venta Electrónico</p>
+            <h1 style="font-size: 26px; letter-spacing: 1px;">{{ $sale->business->name ?? 'Nombre de Negocio No Configurado' }}</h1>
+            <p style="font-size: 15px; margin-top: 8px;">Factura electrónica emitida por {{ $sale->business->name ?? 'su negocio' }}</p>
         </div>
 
         <div class="body">

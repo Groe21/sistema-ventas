@@ -45,7 +45,7 @@ class Sale extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'sale_date' => 'date',
+        'sale_date' => 'datetime',
         'subtotal' => 'decimal:2',
         'iva_amount' => 'decimal:2',
         'ice_amount' => 'decimal:2',

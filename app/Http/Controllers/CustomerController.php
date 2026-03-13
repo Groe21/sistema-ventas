@@ -64,7 +64,19 @@ class CustomerController extends Controller
 
         $validated['business_id'] = auth()->user()->business_id;
 
-        Customer::create($validated);
+        $customer = Customer::create($validated);
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'message' => 'Cliente creado exitosamente.',
+                'customer' => [
+                    'id' => $customer->id,
+                    'name' => $customer->name,
+                    'identification' => $customer->identification,
+                    'identification_type' => $customer->identification_type,
+                ],
+            ], 201);
+        }
 
         return redirect()->route('customers.index')
             ->with('success', 'Cliente creado exitosamente.');

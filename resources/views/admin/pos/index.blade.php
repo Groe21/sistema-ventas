@@ -84,12 +84,36 @@
                 <div class="card mb-2">
                     <div class="card-header py-2"><i class="bi bi-person"></i> Cliente</div>
                     <div class="card-body py-2">
-                        <select name="customer_id" id="customerSelect" class="form-select form-select-sm" required>
-                            <option value="">-- Seleccionar --</option>
+                        <div class="input-group input-group-sm mb-2">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" id="customerSearch" class="form-control" placeholder="Buscar por nombre, cédula o RUC...">
+                        </div>
+                        <div id="customerSearchStatus" class="border rounded px-2 py-2 mb-2 bg-light" style="min-height: 42px;">
+                            <div class="d-flex justify-content-between align-items-center gap-2">
+                                <small id="customerSearchStatusText" class="mb-0 text-muted">
+                                    <i class="bi bi-info-circle"></i> Escriba nombre, cédula o RUC para buscar cliente.
+                                </small>
+                                <button type="button" id="customerRegisterBtn" class="btn btn-sm btn-warning d-none" onclick="openNewCustomerModalFromSearch()">
+                                    <i class="bi bi-person-plus"></i> Registrar
+                                </button>
+                            </div>
+                        </div>
+                        <select name="customer_id" id="customerSelect" class="form-select form-select-sm">
+                            <option value="">Consumidor Final</option>
                             @foreach($customers as $customer)
-                                <option value="{{ $customer->id }}">{{ $customer->name }} {{ $customer->identification ? '- '.$customer->identification : '' }}</option>
+                                <option value="{{ $customer->id }}"
+                                        data-name="{{ strtolower($customer->name) }}"
+                                        data-identification="{{ strtolower($customer->identification ?? '') }}"
+                                        data-search="{{ strtolower($customer->name.' '.$customer->identification.' '.$customer->email) }}">
+                                    {{ $customer->name }} {{ $customer->identification ? '- '.$customer->identification : '' }}
+                                </option>
                             @endforeach
                         </select>
+                        <div class="d-grid mt-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="openNewCustomerModal()">
+                                <i class="bi bi-person-plus"></i> Nuevo Cliente
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -156,6 +180,89 @@
             </div>
         </div>
     </form>
+</div>
+
+{{-- Modal Nuevo Cliente --}}
+<div class="modal fade" id="newCustomerModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h6 class="modal-title"><i class="bi bi-person-plus"></i> Nuevo Cliente</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newCustomerForm">
+                    @csrf
+                    <div class="row g-2 mb-2">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label form-label-sm">Nombre / Razón Social *</label>
+                            <input type="text" class="form-control form-control-sm" id="ncName" required>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label form-label-sm">Tipo de Identificación *</label>
+                            <select id="ncIdType" class="form-select form-select-sm" required>
+                                <option value="cedula">Cédula</option>
+                                <option value="ruc">RUC</option>
+                                <option value="pasaporte">Pasaporte</option>
+                                <option value="consumidor_final">Consumidor Final</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label form-label-sm">N° Identificación</label>
+                            <input type="text" class="form-control form-control-sm" id="ncIdentification" placeholder="Ingrese cédula, RUC o pasaporte">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label form-label-sm">Teléfono</label>
+                            <input type="text" class="form-control form-control-sm" id="ncPhone">
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label form-label-sm"><i class="bi bi-envelope-at text-primary"></i> Email <small class="text-muted">(para factura electrónica)</small></label>
+                        <input type="email" class="form-control form-control-sm" id="ncEmail" placeholder="cliente@ejemplo.com -- la factura se envía a este correo">
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label form-label-sm">Dirección</label>
+                        <input type="text" class="form-control form-control-sm" id="ncAddress">
+                    </div>
+
+                    <div class="row g-2 mb-2">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label form-label-sm">Ciudad</label>
+                            <input type="text" class="form-control form-control-sm" id="ncCity">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label form-label-sm">Provincia</label>
+                            <input type="text" class="form-control form-control-sm" id="ncProvince">
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-2">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label form-label-sm">Límite de Crédito</label>
+                            <input type="number" class="form-control form-control-sm" id="ncCreditLimit" value="0" min="0" step="0.01">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label form-label-sm">Días de Crédito</label>
+                            <input type="number" class="form-control form-control-sm" id="ncCreditDays" value="0" min="0" step="1">
+                        </div>
+                    </div>
+
+                    <div class="mb-1">
+                        <label class="form-label form-label-sm">Notas</label>
+                        <textarea class="form-control form-control-sm" id="ncNotes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary btn-sm" id="saveNewCustomerBtn" onclick="submitNewCustomer()">
+                    <i class="bi bi-check-circle"></i> Guardar Cliente
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 {{-- Modal Cobro Efectivo --}}
@@ -226,6 +333,7 @@
 <script>
 let cart = [];
 const IVA_RATE = 0.15;
+const createCustomerUrl = "{{ route('customers.store') }}";
 
 function addToCart(id, name, code, price, hasIva, stock, stockType) {
     if (stockType === 'product' && stock <= 0) { alert('Sin stock'); return; }
@@ -319,7 +427,6 @@ document.getElementById('productSearch').addEventListener('input', function() {
 
 document.getElementById('posForm').addEventListener('submit', function(e) {
     if (cart.length === 0) { e.preventDefault(); alert('Agregue productos'); return; }
-    if (!document.getElementById('customerSelect').value) { e.preventDefault(); alert('Seleccione cliente'); return; }
     document.getElementById('confirmPayBtn').disabled = true;
     document.getElementById('confirmPayBtn').innerHTML = '<span class="spinner-border spinner-border-sm"></span> Procesando...';
 });
@@ -341,7 +448,6 @@ function getCurrentTotal() {
 
 function openPaymentModal() {
     if (cart.length === 0) { alert('Agregue productos'); return; }
-    if (!document.getElementById('customerSelect').value) { alert('Seleccione cliente'); return; }
 
     const total = getCurrentTotal();
     const method = getSelectedPaymentMethod();
@@ -418,6 +524,244 @@ function confirmPayment() {
 
     document.getElementById('posForm').submit();
 }
+
+function openNewCustomerModal() {
+    const modal = new bootstrap.Modal(document.getElementById('newCustomerModal'));
+    modal.show();
+    setTimeout(() => document.getElementById('ncName').focus(), 250);
+}
+
+function openNewCustomerModalFromSearch() {
+    const term = (document.getElementById('customerSearch').value || '').trim();
+    openNewCustomerModal();
+
+    if (!term) return;
+
+    const looksLikeId = /^[0-9]{6,13}$/.test(term);
+    if (looksLikeId) {
+        document.getElementById('ncIdentification').value = term;
+        document.getElementById('ncIdType').value = term.length === 13 ? 'ruc' : 'cedula';
+        document.getElementById('ncName').value = '';
+    } else {
+        document.getElementById('ncName').value = term;
+        document.getElementById('ncIdentification').value = '';
+    }
+
+    document.getElementById('ncIdType').dispatchEvent(new Event('change'));
+}
+
+function setCustomerSearchStatus(type, text) {
+    const statusBox = document.getElementById('customerSearchStatus');
+    const statusText = document.getElementById('customerSearchStatusText');
+    const registerBtn = document.getElementById('customerRegisterBtn');
+    if (!statusBox || !statusText || !registerBtn) return;
+
+    statusBox.className = 'border rounded px-2 py-2 mb-2';
+    registerBtn.classList.add('d-none');
+
+    if (type === 'found') {
+        statusBox.classList.add('bg-success-subtle', 'border-success');
+        statusText.className = 'mb-0 text-success';
+        statusText.innerHTML = '<i class="bi bi-check-circle"></i> ' + text;
+    } else if (type === 'not-found') {
+        statusBox.classList.add('bg-warning-subtle', 'border-warning');
+        statusText.className = 'mb-0 text-warning-emphasis';
+        statusText.innerHTML = '<i class="bi bi-exclamation-triangle"></i> ' + text;
+        registerBtn.classList.remove('d-none');
+    } else {
+        statusBox.classList.add('bg-light', 'border-secondary-subtle');
+        statusText.className = 'mb-0 text-muted';
+        statusText.innerHTML = '<i class="bi bi-info-circle"></i> ' + text;
+    }
+}
+
+function customerOptionLabel(customer) {
+    return customer.identification
+        ? `${customer.name} - ${customer.identification}`
+        : customer.name;
+}
+
+async function submitNewCustomer() {
+    const name = document.getElementById('ncName').value.trim();
+    const identificationType = document.getElementById('ncIdType').value;
+    const identification = document.getElementById('ncIdentification').value.trim();
+    const phone = document.getElementById('ncPhone').value.trim();
+    const email = document.getElementById('ncEmail').value.trim();
+    const address = document.getElementById('ncAddress').value.trim();
+    const city = document.getElementById('ncCity').value.trim();
+    const province = document.getElementById('ncProvince').value.trim();
+    const creditLimit = parseFloat(document.getElementById('ncCreditLimit').value) || 0;
+    const creditDays = parseInt(document.getElementById('ncCreditDays').value, 10) || 0;
+    const notes = document.getElementById('ncNotes').value.trim();
+    const saveBtn = document.getElementById('saveNewCustomerBtn');
+
+    if (!name) {
+        alert('Ingrese el nombre del cliente');
+        return;
+    }
+
+    if (identificationType !== 'consumidor_final' && !identification) {
+        alert('Ingrese cédula/RUC/pasaporte del cliente');
+        return;
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Guardando...';
+
+    try {
+        const response = await fetch(createCustomerUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                name,
+                identification_type: identificationType,
+                identification,
+                phone,
+                email,
+                address,
+                city,
+                province,
+                credit_limit: creditLimit,
+                credit_days: creditDays,
+                notes,
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            const firstError = err?.errors ? Object.values(err.errors)[0][0] : 'No se pudo crear el cliente';
+            throw new Error(firstError);
+        }
+
+        const data = await response.json();
+        const customer = data.customer;
+        const select = document.getElementById('customerSelect');
+        const option = document.createElement('option');
+        option.value = customer.id;
+        option.textContent = customerOptionLabel(customer);
+        option.dataset.search = `${(customer.name || '').toLowerCase()} ${(customer.identification || '').toLowerCase()} ${(email || '').toLowerCase()}`;
+        select.appendChild(option);
+        select.value = String(customer.id);
+
+        const modalEl = document.getElementById('newCustomerModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal.hide();
+        document.getElementById('newCustomerForm').reset();
+        alert('Cliente creado y seleccionado');
+    } catch (error) {
+        alert(error.message || 'Error al crear cliente');
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="bi bi-check-circle"></i> Guardar Cliente';
+    }
+}
+
+document.getElementById('customerSearch').addEventListener('input', function() {
+    filterAndAutoSelectCustomer(this.value);
+});
+
+function filterAndAutoSelectCustomer(rawTerm) {
+    const term = (rawTerm || '').toLowerCase().trim();
+    const select = document.getElementById('customerSelect');
+    const matches = [];
+    const exactMatches = [];
+
+    Array.from(select.options).forEach((opt, idx) => {
+        if (idx === 0) {
+            opt.hidden = false;
+            return;
+        }
+
+        const text = (opt.textContent || '').toLowerCase();
+        const dataSearch = (opt.dataset.search || '').toLowerCase();
+        const dataName = (opt.dataset.name || '').toLowerCase();
+        const dataIdentification = (opt.dataset.identification || '').toLowerCase();
+        const isMatch = !term || text.includes(term) || dataSearch.includes(term);
+        opt.hidden = !isMatch;
+        if (isMatch) matches.push(opt);
+        if (term && (dataName === term || dataIdentification === term || text.trim() === term)) {
+            exactMatches.push(opt);
+        }
+    });
+
+    // Si no hay término, por defecto consumidor final
+    if (!term) {
+        select.value = '';
+        setCustomerSearchStatus('idle', 'Escriba nombre, cédula o RUC para buscar cliente.');
+        return { count: 0, matches: [] };
+    }
+
+    if (matches.length === 0 || exactMatches.length === 0) {
+        // Estado persistente: no existe cliente exacto para el dato escrito.
+        select.value = '';
+        setCustomerSearchStatus('not-found', 'Cliente no existe. Puede registrarlo ahora o facturar como consumidor final.');
+    }
+
+    if (matches.length === 0) {
+        return { count: 0, matches };
+    }
+
+    // Auto-selección inteligente: exacto por identificación o nombre, si no hay exacto y solo uno, selecciona ese.
+    const exact = matches.find((opt) => {
+        const text = (opt.textContent || '').toLowerCase().trim();
+        const parts = text.split('-').map(s => s.trim());
+        const idPart = parts[1] || '';
+        const dataName = (opt.dataset.name || '').toLowerCase();
+        const dataIdentification = (opt.dataset.identification || '').toLowerCase();
+        return text === term || idPart === term || dataName === term || dataIdentification === term;
+    });
+
+    if (exact) {
+        select.value = exact.value;
+        setCustomerSearchStatus('found', 'Cliente encontrado y seleccionado automáticamente.');
+    } else if (matches.length === 1) {
+        select.value = matches[0].value;
+        setCustomerSearchStatus('found', 'Cliente encontrado y seleccionado automáticamente.');
+    } else {
+        setCustomerSearchStatus('idle', 'Hay varias coincidencias. Seleccione un cliente de la lista.');
+    }
+
+    return { count: matches.length, matches };
+}
+
+document.getElementById('customerSearch').addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+
+    const result = filterAndAutoSelectCustomer(this.value);
+    if (result.count === 0) {
+        openNewCustomerModalFromSearch();
+    }
+});
+
+document.getElementById('ncIdType').addEventListener('change', function() {
+    const identificationInput = document.getElementById('ncIdentification');
+    if (this.value === 'consumidor_final') {
+        identificationInput.value = '';
+        identificationInput.disabled = true;
+        identificationInput.placeholder = 'No aplica para consumidor final';
+    } else {
+        identificationInput.disabled = false;
+        identificationInput.placeholder = 'Ingrese cédula, RUC o pasaporte';
+    }
+});
+
+document.getElementById('customerSelect').addEventListener('change', function() {
+    const selectedText = this.options[this.selectedIndex]?.textContent?.trim();
+    if (this.value) {
+        setCustomerSearchStatus('found', `Cliente seleccionado: ${selectedText}`);
+    } else if ((document.getElementById('customerSearch')?.value || '').trim()) {
+        setCustomerSearchStatus('not-found', 'Cliente no existe. Puede registrarlo ahora o facturar como consumidor final.');
+    } else {
+        setCustomerSearchStatus('idle', 'Escriba nombre, cédula o RUC para buscar cliente.');
+    }
+});
+
+setCustomerSearchStatus('idle', 'Escriba nombre, cédula o RUC para buscar cliente.');
 </script>
 @endpush
 @endsection
