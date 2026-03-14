@@ -94,7 +94,35 @@ class CashController extends Controller
             'counted_card_amount' => 'nullable|numeric|min:0',
             'counted_transfer_amount' => 'nullable|numeric|min:0',
             'closing_notes' => 'nullable|string',
+            'bill_50_series' => 'nullable|string',
+            'bill_100_series' => 'nullable|string',
         ]);
+
+        // Validar que si hay billetes de 50 o 100, se proporcionen series
+        $qty50 = (int) ($validated['denominations']['bill_50'] ?? 0);
+        $qty100 = (int) ($validated['denominations']['bill_100'] ?? 0);
+
+        if ($qty50 > 0) {
+            $series50 = trim($request->input('bill_50_series', ''));
+            if (empty($series50)) {
+                return back()->with('error', 'Debe ingresar las series para los $qty50 billetes de $50.');
+            }
+            $series50Lines = array_filter(array_map('trim', explode("\n", $series50)));
+            if (count($series50Lines) !== $qty50) {
+                return back()->with('error', "Se contaron $qty50 billetes de \$50 pero se ingresaron " . count($series50Lines) . " series.");
+            }
+        }
+
+        if ($qty100 > 0) {
+            $series100 = trim($request->input('bill_100_series', ''));
+            if (empty($series100)) {
+                return back()->with('error', 'Debe ingresar las series para los ' . $qty100 . ' billetes de $100.');
+            }
+            $series100Lines = array_filter(array_map('trim', explode("\n", $series100)));
+            if (count($series100Lines) !== $qty100) {
+                return back()->with('error', "Se contaron $qty100 billetes de \$100 pero se ingresaron " . count($series100Lines) . " series.");
+            }
+        }
 
         // Check business access
         if ($cashRegister->business_id !== auth()->user()->business_id) {
@@ -122,14 +150,29 @@ class CashController extends Controller
 
         $breakdown = [];
         $actualAmount = 0;
+        
+        // Procesar series para billetes de 50 y 100
+        $series50 = array_filter(array_map('trim', explode("\n", $request->input('bill_50_series', ''))));
+        $series100 = array_filter(array_map('trim', explode("\n", $request->input('bill_100_series', ''))));
+        
         foreach ($denominationValues as $key => $value) {
             $qty = (int) ($validated['denominations'][$key] ?? 0);
             $subtotal = round($qty * $value, 2);
-            $breakdown[$key] = [
+            
+            $billData = [
                 'qty' => $qty,
                 'value' => $value,
                 'subtotal' => $subtotal,
             ];
+            
+            // Agregar series si es billete de 50 o 100
+            if ($key === 'bill_50' && !empty($series50)) {
+                $billData['series'] = $series50;
+            } elseif ($key === 'bill_100' && !empty($series100)) {
+                $billData['series'] = $series100;
+            }
+            
+            $breakdown[$key] = $billData;
             $actualAmount += $subtotal;
         }
 

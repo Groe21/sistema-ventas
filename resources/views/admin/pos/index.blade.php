@@ -298,7 +298,7 @@
                         </div>
                     </div>
 
-                    {{-- Botones rápidos de billetes --}}
+                    {{-- Botones rápidos de billetes pequeños --}}
                     <div class="mb-3">
                         <small class="text-muted d-block mb-1">Monto exacto o billetes:</small>
                         <div class="d-flex flex-wrap gap-1">
@@ -307,8 +307,6 @@
                             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(5)">$5</button>
                             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(10)">$10</button>
                             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(20)">$20</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(50)">$50</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setAmount(100)">$100</button>
                         </div>
                     </div>
                 </div>
@@ -321,8 +319,58 @@
             </div>
             <div class="modal-footer py-2">
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" id="confirmPayBtn" onclick="confirmPayment()" disabled>
+                <button type="button" class="btn btn-success" id="confirmPayBtn" onclick="proceedToSelectBills()" disabled>
                     <i class="bi bi-check-circle"></i> Confirmar Cobro
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Modal para seleccionar billetes recibidos --}}
+<div class="modal fade" id="billsReceivedModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white py-2">
+                <h6 class="modal-title"><i class="bi bi-banknote"></i> Billetes Recibidos</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info py-2 small mb-3">
+                    <i class="bi bi-info-circle"></i> ¿Qué billetes grandes dieron? Solo registra $50 y $100
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small"><strong>¿Recibiste billetes de $100?</strong></label>
+                    <div class="input-group input-group-sm">
+                        <input type="number" id="bills100Count" class="form-control text-center" min="0" value="0" placeholder="Cantidad" oninput="updateSeriesFieldsVisibility()">
+                        <span class="input-group-text">x $100</span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small"><strong>¿Recibiste billetes de $50?</strong></label>
+                    <div class="input-group input-group-sm">
+                        <input type="number" id="bills50Count" class="form-control text-center" min="0" value="0" placeholder="Cantidad" oninput="updateSeriesFieldsVisibility()">
+                        <span class="input-group-text">x $50</span>
+                    </div>
+                </div>
+
+                {{-- Contenedores para series --}}
+                <div id="series100Container" style="display: none;">
+                    <label class="form-label small"><strong>Series de $100:</strong></label>
+                    <textarea id="series100Input" class="form-control form-control-sm mb-2" rows="3" placeholder="Una serie por línea&#10;Ej: ABC123&#10;DEF456"></textarea>
+                </div>
+
+                <div id="series50Container" style="display: none;">
+                    <label class="form-label small"><strong>Series de $50:</strong></label>
+                    <textarea id="series50Input" class="form-control form-control-sm" rows="3" placeholder="Una serie por línea&#10;Ej: XYZ789&#10;UVW654"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="closeBillsModal()">Atrás</button>
+                <button type="button" class="btn btn-info btn-sm" onclick="confirmBillsReceived()">
+                    <i class="bi bi-check-circle"></i> Confirmar
                 </button>
             </div>
         </div>
@@ -334,6 +382,104 @@
 let cart = [];
 const IVA_RATE = 0.15;
 const createCustomerUrl = "{{ route('customers.store') }}";
+
+// Almacenar datos de billetes temporalmente
+let billsData = {
+    '100': { count: 0, series: [] },
+    '50': { count: 0, series: [] }
+};
+
+function updateSeriesFieldsVisibility() {
+    const bills100 = parseInt(document.getElementById('bills100Count').value || '0');
+    const bills50 = parseInt(document.getElementById('bills50Count').value || '0');
+
+    document.getElementById('series100Container').style.display = bills100 > 0 ? '' : 'none';
+    document.getElementById('series50Container').style.display = bills50 > 0 ? '' : 'none';
+
+    if (bills100 > 0) {
+        document.getElementById('series100Input').focus();
+    }
+}
+
+function proceedToSelectBills() {
+    const method = getSelectedPaymentMethod();
+    
+    if (method !== 'cash') {
+        // Para tarjeta, transferencia, etc., confirmar sin modal de billetes
+        confirmPayment();
+        return;
+    }
+
+    // Resetear formulario de billetes
+    document.getElementById('bills100Count').value = '0';
+    document.getElementById('bills50Count').value = '0';
+    document.getElementById('series100Input').value = '';
+    document.getElementById('series50Input').value = '';
+    updateSeriesFieldsVisibility();
+
+    // Mostrar modal de billetes
+    const paymentModal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
+    paymentModal.hide();
+
+    const billsModal = new bootstrap.Modal(document.getElementById('billsReceivedModal'));
+    billsModal.show();
+}
+
+function closeBillsModal() {
+    const billsModal = bootstrap.Modal.getInstance(document.getElementById('billsReceivedModal'));
+    billsModal.hide();
+    
+    const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    paymentModal.show();
+}
+
+function confirmBillsReceived() {
+    const bills100 = parseInt(document.getElementById('bills100Count').value || '0');
+    const bills50 = parseInt(document.getElementById('bills50Count').value || '0');
+
+    // Si no hay billetes grandes, solo confirmar pago
+    if (bills100 === 0 && bills50 === 0) {
+        confirmPayment();
+        return;
+    }
+
+    // Validar y procesar series
+    let series100 = [];
+    let series50 = [];
+
+    if (bills100 > 0) {
+        const series100Text = document.getElementById('series100Input').value.trim();
+        if (!series100Text) {
+            alert('Debe ingresar las series para los billetes de $100');
+            return;
+        }
+        series100 = series100Text.split('\n').map(s => s.trim()).filter(s => s !== '');
+        if (series100.length !== bills100) {
+            alert('Se contaron ' + bills100 + ' billetes de $100 pero se ingresaron ' + series100.length + ' series');
+            return;
+        }
+    }
+
+    if (bills50 > 0) {
+        const series50Text = document.getElementById('series50Input').value.trim();
+        if (!series50Text) {
+            alert('Debe ingresar las series para los billetes de $50');
+            return;
+        }
+        series50 = series50Text.split('\n').map(s => s.trim()).filter(s => s !== '');
+        if (series50.length !== bills50) {
+            alert('Se contaron ' + bills50 + ' billetes de $50 pero se ingresaron ' + series50.length + ' series');
+            return;
+        }
+    }
+
+    // Guardar datos de billetes
+    billsData['100'] = { count: bills100, series: series100 };
+    billsData['50'] = { count: bills50, series: series50 };
+
+    // Confirmar pago con datos de billetes
+    confirmPayment();
+}
 
 function addToCart(id, name, code, price, hasIva, stock, stockType) {
     if (stockType === 'product' && stock <= 0) { alert('Sin stock'); return; }
@@ -521,6 +667,32 @@ function confirmPayment() {
         document.getElementById('amountReceivedInput').value = received.toFixed(2);
         document.getElementById('changeAmountInput').value = (received - total).toFixed(2);
     }
+
+    // Guardar información de billetes en un campo oculto
+    const billsPayload = {};
+    if (billsData['100'].count > 0 && billsData['100'].series.length > 0) {
+        billsPayload['100'] = billsData['100'].series;
+    }
+    if (billsData['50'].count > 0 && billsData['50'].series.length > 0) {
+        billsPayload['50'] = billsData['50'].series;
+    }
+
+    if (Object.keys(billsPayload).length > 0) {
+        // Crear un input oculto para los billetes
+        let billsInput = document.getElementById('billsDataInput');
+        if (!billsInput) {
+            billsInput = document.createElement('input');
+            billsInput.id = 'billsDataInput';
+            billsInput.type = 'hidden';
+            billsInput.name = 'bills_data';
+            document.getElementById('posForm').appendChild(billsInput);
+        }
+        billsInput.value = JSON.stringify(billsPayload);
+    }
+
+    // Cerrar modal de billetes si está abierto
+    const billsModal = bootstrap.Modal.getInstance(document.getElementById('billsReceivedModal'));
+    if (billsModal) billsModal.hide();
 
     document.getElementById('posForm').submit();
 }

@@ -329,8 +329,36 @@
                                 <tr><td>Billete $5</td><td><input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[bill_5]" data-value="5.00" value="0"></td><td class="text-end denomination-subtotal">$0.00</td></tr>
                                 <tr><td>Billete $10</td><td><input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[bill_10]" data-value="10.00" value="0"></td><td class="text-end denomination-subtotal">$0.00</td></tr>
                                 <tr><td>Billete $20</td><td><input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[bill_20]" data-value="20.00" value="0"></td><td class="text-end denomination-subtotal">$0.00</td></tr>
-                                <tr><td>Billete $50</td><td><input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[bill_50]" data-value="50.00" value="0"></td><td class="text-end denomination-subtotal">$0.00</td></tr>
-                                <tr><td>Billete $100</td><td><input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[bill_100]" data-value="100.00" value="0"></td><td class="text-end denomination-subtotal">$0.00</td></tr>
+                                <tr>
+                                    <td>Billete $50</td>
+                                    <td>
+                                        <input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[bill_50]" data-value="50.00" value="0" onchange="validateBillSeriesRequired(this, 50)">
+                                    </td>
+                                    <td class="text-end denomination-subtotal">$0.00</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3">
+                                        <div id="series50Container" style="display: none; padding: 10px; background: #fff3cd; border-radius: 4px; margin-top: 5px;">
+                                            <label class="form-label small mb-2"><strong>Series de Billetes $50</strong> (una por línea)</label>
+                                            <textarea name="bill_50_series" id="bill50SeriesInput" class="form-control form-control-sm" rows="2" placeholder="Ej: ABC123&#10;DEF456&#10;GHI789"></textarea>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Billete $100</td>
+                                    <td>
+                                        <input type="number" min="0" step="1" class="form-control form-control-sm denomination-input" name="denominations[bill_100]" data-value="100.00" value="0" onchange="validateBillSeriesRequired(this, 100)">
+                                    </td>
+                                    <td class="text-end denomination-subtotal">$0.00</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3">
+                                        <div id="series100Container" style="display: none; padding: 10px; background: #f8d7da; border-radius: 4px; margin-top: 5px;">
+                                            <label class="form-label small mb-2"><strong>Series de Billetes $100</strong> (una por línea)</label>
+                                            <textarea name="bill_100_series" id="bill100SeriesInput" class="form-control form-control-sm" rows="2" placeholder="Ej: XYZ789&#10;UVW654&#10;TSR321"></textarea>
+                                        </div>
+                                    </td>
+                                </tr>
                             </tbody>
                             <tfoot class="table-light">
                                 <tr>
@@ -374,6 +402,24 @@
 
 @push('scripts')
 <script>
+function validateBillSeriesRequired(inputElement, denomination) {
+    const qty = parseInt(inputElement.value || '0', 10);
+    const containerId = denomination === 50 ? 'series50Container' : 'series100Container';
+    const textareaId = denomination === 50 ? 'bill50SeriesInput' : 'bill100SeriesInput';
+    const container = document.getElementById(containerId);
+    const textarea = document.getElementById(textareaId);
+
+    if (qty > 0) {
+        container.style.display = '';
+        textarea.setAttribute('required', 'required');
+        textarea.focus();
+    } else {
+        container.style.display = 'none';
+        textarea.removeAttribute('required');
+        textarea.value = '';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const inputs = document.querySelectorAll('.denomination-input');
     if (!inputs.length) return;

@@ -12,6 +12,18 @@
         </div>
     </div>
 
+    {{-- Alerta de confirmación --}}
+    @if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle"></i> {{ session('success') }}
+        @if($sale->customer && $sale->customer->email)
+            <br>
+            <small><i class="bi bi-envelope"></i> Email enviado a <strong>{{ $sale->customer->email }}</strong></small>
+        @endif
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    @endif
+
     <div class="card" id="invoiceCard">
         <div class="card-body p-3 p-md-4">
             {{-- Cabecera --}}
@@ -21,9 +33,8 @@
                     @if(auth()->user()->business)
                         <small class="text-muted">
                             RUC: {{ auth()->user()->business->ruc }}<br>
-                            {{ auth()->user()->business->address }}<br>
-                            {{ auth()->user()->business->city }}
-                            @if(auth()->user()->business->phone), Tel: {{ auth()->user()->business->phone }}@endif
+                            {{ auth()->user()->business->address }}
+                            @if(auth()->user()->business->phone)<br>Tel: {{ auth()->user()->business->phone }}@endif
                         </small>
                     @endif
                 </div>
@@ -93,6 +104,23 @@
                             <td class="text-end">${{ number_format($item->subtotal, 2) }}</td>
                         </tr>
                         @endforeach
+
+                        {{-- Mostrar billetes de 50 y 100 con series como líneas adicionales --}}
+                        @if($sale->paymentDetails && count($sale->paymentDetails) > 0)
+                            @foreach($sale->paymentDetails as $i => $detail)
+                            <tr class="table-info">
+                                <td>{{ $sale->items->count() + $loop->iteration }}</td>
+                                <td>
+                                    Billete de ${{ number_format($detail->denomination_value, 2) }}
+                                    <br><small class="text-muted">Serie: <strong>{{ $detail->series }}</strong></small>
+                                </td>
+                                <td class="text-center">{{ $detail->quantity }}</td>
+                                <td class="text-end hide-mobile">${{ number_format($detail->denomination_value, 2) }}</td>
+                                <td class="text-center hide-mobile"><span class="badge bg-light text-dark">0%</span></td>
+                                <td class="text-end">${{ number_format($detail->subtotal, 2) }}</td>
+                            </tr>
+                            @endforeach
+                        @endif
                     </tbody>
                     <tfoot>
                         <tr>

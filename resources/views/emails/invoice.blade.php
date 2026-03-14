@@ -105,6 +105,27 @@
                         <td class="text-end">${{ number_format($item->subtotal, 2) }}</td>
                     </tr>
                     @endforeach
+
+                    {{-- Mostrar billetes de 50 y 100 con series (si existen) --}}
+                    @php
+                        $paymentDetails = $sale->paymentDetails ?? collect();
+                        $itemCount = count($sale->items ?? []);
+                    @endphp
+                    @if($paymentDetails && $paymentDetails->count() > 0)
+                        @foreach($paymentDetails as $detail)
+                        <tr style="background: #cff4fc;">
+                            <td>{{ $itemCount + $loop->iteration }}</td>
+                            <td>
+                                Billete de ${{ number_format($detail->denomination_value ?? 0, 2) }}<br>
+                                <span style="font-size: 12px; color: #888;">Serie: <strong>{{ $detail->series ?? 'N/A' }}</strong></span>
+                            </td>
+                            <td class="text-center">{{ $detail->quantity ?? 1 }}</td>
+                            <td class="text-end">${{ number_format($detail->denomination_value ?? 0, 2) }}</td>
+                            <td class="text-center">0%</td>
+                            <td class="text-end">${{ number_format($detail->subtotal ?? 0, 2) }}</td>
+                        </tr>
+                        @endforeach
+                    @endif
                 </tbody>
                 <tfoot>
                     <tr>

@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\Customer;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\SalePaymentDetail;
 use App\Models\CashRegister;
 use App\Models\CashMovement;
 use App\Models\CustomerPoint;
@@ -75,6 +76,7 @@ class POSController extends Controller
             'redeem_points' => 'nullable|integer|min:0',
             'amount_received' => 'nullable|numeric|min:0',
             'change_amount' => 'nullable|numeric|min:0',
+            'bills_data' => 'nullable|string', // JSON string con los billetes de 50 y 100
         ]);
 
 
@@ -163,6 +165,43 @@ class POSController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
+            // Guardar detalles de billetes de 50 y 100 con series
+            if (!empty($validated['bills_data'])) {
+                try {
+                    $billsData = json_decode($validated['bills_data'], true);
+                    if (is_array($billsData)) {
+                        // Procesar billetes de 50
+                        if (!empty($billsData['50'])) {
+                            foreach ($billsData['50'] as $series) {
+                                SalePaymentDetail::create([
+                                    'sale_id' => $sale->id,
+                                    'denomination_type' => 'bill',
+                                    'denomination_value' => 50,
+                                    'quantity' => 1,
+                                    'series' => $series,
+                                    'subtotal' => 50,
+                                ]);
+                            }
+                        }
+                        // Procesar billetes de 100
+                        if (!empty($billsData['100'])) {
+                            foreach ($billsData['100'] as $series) {
+                                SalePaymentDetail::create([
+                                    'sale_id' => $sale->id,
+                                    'denomination_type' => 'bill',
+                                    'denomination_value' => 100,
+                                    'quantity' => 1,
+                                    'series' => $series,
+                                    'subtotal' => 100,
+                                ]);
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    \Log::warning('Error guardando detalles de billetes: ' . $e->getMessage());
+                }
+            }
+
             // Crear items y descontar stock
             foreach ($items as $item) {
                 SaleItem::create([
@@ -250,31 +289,44 @@ class POSController extends Controller
 
             // Enviar factura por email al cliente
             try {
-                $sale->load(['items', 'customer', 'business', 'user']);
+                $sale->load(['items', 'paymentDetails', 'customer', 'business', 'user']);
+                \Log::info("Preparando envío de email para venta {$invoiceNumber}");
+                
                 if ($sale->customer && $sale->customer->email) {
                     $mailSettings = BusinessSetting::getMany($businessId, ['mail_host', 'mail_port', 'mail_username', 'mail_password', 'mail_encryption', 'mail_from_name']);
                     if (!empty($mailSettings['mail_username']) && !empty($mailSettings['mail_password'])) {
-                        $password = Crypt::decryptString($mailSettings['mail_password']);
+                        try {
+                            $password = Crypt::decryptString($mailSettings['mail_password']);
 
-                        config([
-                            'mail.mailers.business' => [
-                                'transport' => 'smtp',
-                                'host' => $mailSettings['mail_host'],
-                                'port' => (int) $mailSettings['mail_port'],
-                                'username' => $mailSettings['mail_username'],
-                                'password' => $password,
-                                'encryption' => ($mailSettings['mail_encryption'] ?? 'tls') === 'none' ? null : $mailSettings['mail_encryption'],
-                                'timeout' => 10,
-                            ],
-                            'mail.from.address' => $mailSettings['mail_username'],
-                            'mail.from.name' => $mailSettings['mail_from_name'] ?? $sale->business->name,
-                        ]);
+                            config([
+                                'mail.mailers.business' => [
+                                    'transport' => 'smtp',
+                                    'host' => $mailSettings['mail_host'],
+                                    'port' => (int) $mailSettings['mail_port'],
+                                    'username' => $mailSettings['mail_username'],
+                                    'password' => $password,
+                                    'encryption' => ($mailSettings['mail_encryption'] ?? 'tls') === 'none' ? null : $mailSettings['mail_encryption'],
+                                    'timeout' => 10,
+                                ],
+                                'mail.from.address' => $mailSettings['mail_username'],
+                                'mail.from.name' => $mailSettings['mail_from_name'] ?? $sale->business->name,
+                            ]);
 
-                        Mail::mailer('business')->to($sale->customer->email)->send(new InvoiceMail($sale));
+                            Mail::mailer('business')->to($sale->customer->email)->send(new InvoiceMail($sale));
+                            \Log::info("Email enviado exitosamente a {$sale->customer->email} para venta {$invoiceNumber}");
+                        } catch (\Exception $emailError) {
+                            \Log::error("Error configurando email: " . $emailError->getMessage());
+                            \Log::error($emailError->getTraceAsString());
+                        }
+                    } else {
+                        \Log::warning("Email no enviado: Configuración SMTP no disponible para venta {$invoiceNumber}");
                     }
+                } else {
+                    \Log::info("Email no enviado: Cliente sin email para venta {$invoiceNumber}");
                 }
             } catch (\Exception $e) {
-                \Log::warning('Error enviando factura por email: ' . $e->getMessage());
+                \Log::error('Error en proceso de email: ' . $e->getMessage());
+                \Log::error($e->getTraceAsString());
             }
 
             return redirect()->route('sales.show', $sale)->with('success', "Venta {$invoiceNumber} registrada por \${$total}");

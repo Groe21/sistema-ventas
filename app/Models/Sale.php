@@ -104,6 +104,14 @@ class Sale extends Model
     }
 
     /**
+     * Get the payment details (bills with series) for the sale.
+     */
+    public function paymentDetails(): HasMany
+    {
+        return $this->hasMany(SalePaymentDetail::class);
+    }
+
+    /**
      * Check if sale is completed.
      */
     public function isCompleted(): bool
