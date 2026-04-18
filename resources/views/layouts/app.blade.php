@@ -9,6 +9,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     
+    <!-- Driver.js for onboarding tours -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css"/>
+    
     <style>
         :root {
             --sidebar-width: 240px;
@@ -199,7 +202,16 @@
     </style>
     @stack('styles')
 </head>
-<body>
+<body data-show-onboarding-tour="{{ session('show_onboarding_tour') ? 'true' : 'false' }}">
+@auth
+    <script>
+        // Pass business data to JavaScript
+        window.business = {
+            id: {{ auth()->user()->business_id ?? 'null' }},
+            onboarding_completed: {{ auth()->user()->business && auth()->user()->business->onboarding_completed ? 'true' : 'false' }}
+        };
+    </script>
+@endauth
 
 <!-- Navbar -->
 <nav class="top-navbar">
@@ -329,6 +341,11 @@ setTimeout(function() {
     });
 }, 5000);
 </script>
+
+<!-- Driver.js for onboarding tours -->
+<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.iife.js"></script>
+<script src="{{ asset('js/onboarding-tour.js') }}"></script>
+
 @stack('scripts')
 </body>
 </html>

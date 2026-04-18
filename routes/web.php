@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CustomerController;
@@ -28,9 +29,29 @@ Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-// Redirect root to login or dashboard
+// Public Registration Routes
+Route::get('/registro', [RegisterController::class, 'showRegistrationForm'])->name('register.business');
+Route::post('/registro', [RegisterController::class, 'register'])->name('register.business.store');
+
+// Public Landing Pages
+Route::get('/landing', function () {
+    return view('landing.home');
+})->name('landing');
+
+Route::get('/planes', function () {
+    return view('landing.pricing');
+})->name('landing.pricing');
+
+Route::get('/caracteristicas', function () {
+    return view('landing.features');
+})->name('landing.features');
+
+// Redirect root to landing or dashboard
 Route::get('/', function () {
-    return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('landing');
 });
 
 // Customer Points Portal (public)

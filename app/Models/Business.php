@@ -34,6 +34,7 @@ class Business extends Model
         'subscription_start',
         'subscription_end',
         'plan',
+        'onboarding_completed',
     ];
 
     /**
@@ -46,6 +47,7 @@ class Business extends Model
         'required_accounting' => 'boolean',
         'subscription_start' => 'date',
         'subscription_end' => 'date',
+        'onboarding_completed' => 'boolean',
     ];
 
     /**
