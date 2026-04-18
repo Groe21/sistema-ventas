@@ -24,6 +24,19 @@ use App\Http\Controllers\CustomerPortalController;
 |--------------------------------------------------------------------------
 */
 
+// Health Check Route (for Railway/monitoring)
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'timestamp' => now()->toIso8601String(),
+        'app' => config('app.name'),
+    ]);
+});
+
+Route::get('/up', function () {
+    return 'ok';
+});
+
 // Authentication Routes
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
