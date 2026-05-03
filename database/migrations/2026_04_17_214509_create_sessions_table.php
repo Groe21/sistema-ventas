@@ -11,6 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Ya creada en 2024_01_01_000002_create_users_table; evita duplicar en installs nuevos (p. ej. Neon).
+        if (Schema::hasTable('sessions')) {
+            return;
+        }
+
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->index();
@@ -26,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('sessions');
+        // No eliminar: la tabla pertenece al ciclo de vida de create_users_table.
     }
 };

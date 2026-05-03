@@ -47,6 +47,17 @@
             "@php artisan key:generate --ansi",
             "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
             "@php artisan migrate --graceful --ansi"
+        ],
+        "db:check": [
+            "@php artisan config:clear",
+            "@php artisan db:show"
+        ],
+        "migrate:remote": [
+            "@php artisan config:clear",
+            "@php artisan migrate --force"
+        ],
+        "vercel": [
+            "@composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist"
         ]
     },
     "extra": {
